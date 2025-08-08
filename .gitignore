@@ -127,7 +127,6 @@ app.log
 *_temp*.py
 *_new.py
 *_header.py
-*.txt
 pasta_function.txt
 missing_functions.py
 iptal_eden_function.py

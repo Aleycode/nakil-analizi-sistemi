@@ -1,0 +1,42 @@
+{
+  "baslik": {
+    "metin": "NAKİL ANALİZ RAPORU",
+    "font_boyutu": 24,
+    "renk": "#2c3e50",
+    "konum": "merkez",
+    "ust_bosluk": 1.5,
+    "alt_bosluk": 0.3
+  },
+  "alt_baslik": {
+    "metin": "Günlük Vaka Takip ve Değerlendirme",
+    "font_boyutu": 16,
+    "renk": "#34495e",
+    "konum": "merkez",
+    "alt_bosluk": 2.0
+  },
+  "kurum": {
+    "metin": "T.C. Sağlık Bakanlığı",
+    "font_boyutu": 18,
+    "renk": "#2c3e50",
+    "konum": "merkez",
+    "ust_bosluk": 1.5
+  },
+  "logo": {
+    "dosya_adi": "logo.png",
+    "genislik": 2.0,
+    "yukseklik": 2.0,
+    "alt_bosluk": 0.5
+  },
+  "sayfa_ayarlari": {
+    "kenar_boslugu": 1.0,
+    "sayfa_boyutu": "A4"
+  },
+  "tarih_goster": false,
+  "tarih": {
+    "font_boyutu": 14,
+    "renk": "#7f8c8d",
+    "konum": "merkez",
+    "format": "%d.%m.%Y",
+    "prefix": "Rapor Tarihi: "
+  }
+}
