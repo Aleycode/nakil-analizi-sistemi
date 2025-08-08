@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Dict, Any, List, Optional
 
-from config import (
+from ..core.config import (
     KLINIK_SUTUN_ADI,
     KLINIK_ANALIZ_AYARLARI,
     VARSAYILAN_GRAFIK_BOYUTU,

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 import shutil
 
-from config import (
+from src.core.config import (
     LOG_DOSYA,
     LOG_SEVIYE,
     ISLENMIŞ_VERI_DIZIN,
@@ -21,8 +21,8 @@ from config import (
     EXCEL_TARIH_SUTUNLARI,
     VAKA_TIPI_ISIMLERI,
 )
-from data_processor import Veriİşleyici
-from nakil_analyzer import NakilAnalizcisi
+from src.processors.data_processor import Veriİşleyici
+from src.analyzers.nakil_analyzer import NakilAnalizcisi
 import pandas as pd
 
 # Logger yapılandırması

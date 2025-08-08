@@ -1,0 +1,1 @@
+"""Core modülü - Ana işlevsellik"""

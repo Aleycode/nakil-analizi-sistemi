@@ -8,11 +8,11 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-from veri_isleme import VeriIsleme
-from analiz_motoru import AnalizMotoru
-from grafik_olusturucu import GrafikOlusturucu
-from klinik_analizcisi import KlinikAnalizcisi
-from pdf_olusturucu import PDFOlusturucu
+from ..processors.veri_isleme import VeriIsleme
+from .analiz_motoru import AnalizMotoru
+from ..generators.grafik_olusturucu import GrafikOlusturucu
+from .klinik_analizcisi import KlinikAnalizcisi
+from ..generators.pdf_olusturucu import PDFOlusturucu
 
 # Logger yapılandırması
 logger = logging.getLogger(__name__)

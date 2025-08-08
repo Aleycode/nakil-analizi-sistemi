@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 import xlrd
 
-from config import (
+from ..core.config import (
     HAM_VERI_DIZIN,
     ISLENMIŞ_VERI_DIZIN,
     EXCEL_MOTOR,

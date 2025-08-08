@@ -25,7 +25,7 @@ try:
 except ImportError:
     PDF_MERGER_AVAILABLE = False
 
-from config import PDF_CONFIG_DOSYA_YOLU
+from ..core.config import PDF_CONFIG_DOSYA_YOLU
 
 logger = logging.getLogger(__name__)
 

@@ -134,6 +134,12 @@ iptal_nedenleri_function.py
 grafik_metin_function.py
 test_cache.py
 
+# Build ve distribution dosyaları
+build/
+dist/
+dist_package/
+*.spec
+
 # PDF konfigürasyon yedekleri
 pdf_config_updated.json
 

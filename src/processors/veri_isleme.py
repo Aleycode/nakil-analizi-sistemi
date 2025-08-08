@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
-from config import (
+from ..core.config import (
     ISLENMIŞ_VERI_DIZIN,
     TARIH_SUTUNLARI,
 )

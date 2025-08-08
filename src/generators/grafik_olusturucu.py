@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
 
-from config import (
+from ..core.config import (
     RAPOR_DIZIN,
     VARSAYILAN_GRAFIK_BOYUTU,
     VARSAYILAN_DPI,
