@@ -69,7 +69,7 @@ class VeriIsleme:
         Config ayarlarına göre veri düzenlemelerini uygular
         """
         try:
-            from config import VERI_DUZENLEME_AYARLARI
+            from ..core.config import VERI_DUZENLEME_AYARLARI
 
             # Klinik adı dönüştürmeleri (en başta yapılır)
             klinik_ayarlari = VERI_DUZENLEME_AYARLARI.get(

@@ -186,7 +186,7 @@ def gunluk_nakil_analizi_yap(
             print(
                 f"📊 {VAKA_TIPI_ISIMLERI['devreden_vaka_adi']} oranı: {stats.get('devreden_vaka_yuzde', 0):.1f}%"
             )
-    except Exception as e:
+
         # İl grupları özetini göster
         if "il_gruplari" in rapor:
             for il_grup, il_veri in rapor["il_gruplari"].items():

@@ -160,7 +160,7 @@ class NakilAnalizcisi:
                             rapor["oluşturulan_grafikler"].extend(grafik_dosyalari)
 
             # 5. Yeni pasta grafikleri oluştur (her il grubu için)
-            from config import GRAFIK_AYARLARI
+            from ..core.config import GRAFIK_AYARLARI
 
             # Vaka tipi pasta grafikleri
             if GRAFIK_AYARLARI.get("vaka_tipi_pasta_grafigi", True):

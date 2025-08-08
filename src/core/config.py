@@ -5,8 +5,8 @@ Konfigürasyon ayarları
 import os
 from pathlib import Path
 
-# Proje kök dizini
-PROJE_KOK = Path(__file__).parent
+# Proje kök dizini (src/core klasöründen 2 seviye yukarı)
+PROJE_KOK = Path(__file__).parent.parent.parent
 
 # Veri dizinleri
 VERI_DIZIN = PROJE_KOK / "data"

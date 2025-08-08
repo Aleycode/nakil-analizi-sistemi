@@ -65,7 +65,8 @@ class PDFOlusturucu:
         """Türkçe karakter desteği için font ekler"""
         try:
             font_ayarlari = self.config.get("font_ayarlari", {})
-            proje_kok = Path(__file__).parent
+            # Proje kök dizinini al (src/generators'dan 2 seviye yukarı)
+            proje_kok = Path(__file__).parent.parent.parent
 
             # DejaVu Sans fontlarını kaydet
             font_dosyalari = [
@@ -251,7 +252,7 @@ class PDFOlusturucu:
 
         try:
             # Assets klasöründeki hazır kapak PDF'ini kullan
-            proje_kok = Path(__file__).parent
+            proje_kok = Path(__file__).parent.parent.parent
             kapak_dosyasi = proje_kok / "assets" / "kapak.pdf"
 
             if kapak_dosyasi.exists():
@@ -292,7 +293,7 @@ class PDFOlusturucu:
     def _kapak_ile_birlestir(self, icerik_pdf: Path, cikti_pdf: Path) -> str:
         """Kapak PDF'i ile içerik PDF'ini birleştirir"""
         try:
-            proje_kok = Path(__file__).parent
+            proje_kok = Path(__file__).parent.parent.parent
             kapak_dosyasi = proje_kok / "assets" / "kapak.pdf"
 
             if not kapak_dosyasi.exists():
