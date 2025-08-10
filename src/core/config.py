@@ -190,7 +190,7 @@ GRAFIK_AYARLARI = {
     # Yeni pasta grafikleri
     "vaka_tipi_pasta_grafigi": True,  # Vaka tipi dağılımı (Yeni/Devreden)
     "il_dagilim_pasta_grafigi": True,  # İl dağılımı (İl İçi/İl Dışı)
-    "iptal_eden_cubuk_grafigi": True,  # İptal eden dağılımı
+    "iptal_eden_cubuk_grafigi": False,  # Devre dışı
     "solunum_islemi_pasta_grafigi": True,  # Solunum işlemi dağılımı
     "iptal_nedenleri_grafik": True,  # İptal nedenleri çubuk grafiği
     # Metin raporları

@@ -186,31 +186,28 @@ class NakilAnalizcisi:
                     grafik_listesi = rapor["oluşturulan_grafikler"]
                     grafik_listesi.append(grafik_dosya_str)
 
-            # İptal eden pasta grafikleri (her il grubu için)
-            if GRAFIK_AYARLARI.get("iptal_eden_cubuk_grafigi", True):
-                for il_grup_adi, il_df in il_gruplari.items():
-                    if len(il_df) > 0:
-                        iptal_eden_dosya = (
-                            self.grafik_olusturucu.iptal_eden_cubuk_grafigi(
-                                il_df, gun_tarihi, il_grup_adi
-                            )
-                        )
-                        if iptal_eden_dosya:
-                            grafik_dosya_str = str(iptal_eden_dosya)
-                            grafik_listesi = rapor["oluşturulan_grafikler"]
-                            grafik_listesi.append(grafik_dosya_str)
+            # İptal eden karşılaştırma grafiği (il içi vs il dışı)
+            if GRAFIK_AYARLARI.get("iptal_eden_karsilastirma_grafigi", True):
+                karsilastirma_dosya = (
+                    self.grafik_olusturucu.iptal_eden_karsilastirma_grafigi(
+                        il_gruplari, gun_tarihi
+                    )
+                )
+                if karsilastirma_dosya:
+                    grafik_dosya_str = str(karsilastirma_dosya)
+                    grafik_listesi = rapor["oluşturulan_grafikler"]
+                    grafik_listesi.append(grafik_dosya_str)
 
             # Solunum işlemi pasta grafikleri (her il grubu için)
             if GRAFIK_AYARLARI.get("solunum_islemi_pasta_grafigi", True):
-                solunum_grafik_dosyalari = (
+                solunum_grafik_dosyasi = (
                     self.grafik_olusturucu.solunum_islemi_pasta_grafigi(
                         il_gruplari["Butun_Bolgeler"], gun_tarihi, "Butun_Bolgeler"
                     )
                 )
-                if solunum_grafik_dosyalari:
+                if solunum_grafik_dosyasi:
                     grafik_listesi = rapor["oluşturulan_grafikler"]
-                    for dosya in solunum_grafik_dosyalari:
-                        grafik_listesi.append(str(dosya))
+                    grafik_listesi.append(str(solunum_grafik_dosyasi))
 
             # Nakil bekleyen raporu oluştur (txt)
             if GRAFIK_AYARLARI.get("nakil_bekleyen_raporu", True):

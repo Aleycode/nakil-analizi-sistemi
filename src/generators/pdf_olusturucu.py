@@ -410,6 +410,14 @@ class PDFOlusturucu:
                 aciklama = grafik_config.get("aciklama", "")
                 sayfa_sonu = grafik_config.get("sayfa_sonu", False)
 
+                # Teknik başlıkları filtrele
+                if baslik and (
+                    "_" in baslik
+                    or "threshold" in baslik.lower()
+                    or "butun" in baslik.lower()
+                ):
+                    baslik = ""
+
                 # Grafik pattern'ını belirle
                 pattern = ""
                 for config_item in self.config.get("grafik_sirasi", []):
@@ -456,6 +464,10 @@ class PDFOlusturucu:
                         height=grafik_yukseklik,
                     )
                 )
+
+                # Config'den gelen grafik metinlerini ekle
+                self._pdf_grafik_metni_ekle(elements, grafik_dosyasi)
+
                 elements.append(Spacer(1, 0.2 * inch))
 
                 sayfa_sayaci += 1
@@ -506,6 +518,62 @@ class PDFOlusturucu:
 
         except Exception as e:
             logger.error(f"Ara metin ekleme hatası: {e}")
+
+    def _pdf_grafik_metni_ekle(self, elements: List, grafik_dosyasi: Path) -> None:
+        """PDF için grafik metinlerini config'den ekler"""
+        try:
+            metin_ayarlari = self.config.get("grafik_metin_ayarlari", {})
+
+            if not metin_ayarlari.get("metin_ekleme_aktif", False):
+                return
+
+            dosya_adi = grafik_dosyasi.stem
+
+            # Önce özel metinleri kontrol et
+            ozel_metinler = metin_ayarlari.get("ozel_metinler", {})
+            metin_config = None
+
+            for desen, config_item in ozel_metinler.items():
+                desen_temiz = desen.replace("*", "")
+                if desen_temiz in dosya_adi:
+                    metin_config = config_item
+                    break
+
+            # Sonra grafik özelliklerini kontrol et
+            if not metin_config:
+                grafik_ozellikleri = metin_ayarlari.get("grafik_ozellikleri", {})
+                for desen, config_item in grafik_ozellikleri.items():
+                    desen_temiz = desen.replace("*", "")
+                    if desen_temiz in dosya_adi:
+                        metin_config = config_item
+                        break
+
+            # Metin belirle
+            if metin_config:
+                metin = metin_config.get("metin", "")
+                konum = metin_config.get("konum", "alt")
+                font_boyutu = metin_config.get("font_boyutu", 10)
+                font_kalin = metin_config.get("font_kalin", False)
+            else:
+                # Genel metin kullan
+                metin = metin_ayarlari.get("genel_metin", "")
+                konum = metin_ayarlari.get("metin_konumu", "alt")
+                font_boyutu = metin_ayarlari.get("font_boyutu", 10)
+                font_kalin = metin_ayarlari.get("font_kalin", False)
+
+            if metin:
+                # Font stilini belirle
+                if font_kalin:
+                    stil_metin = f"<b>{metin}</b>"
+                else:
+                    stil_metin = metin
+
+                # Metni ekle
+                elements.append(Spacer(1, 0.1 * inch))
+                elements.append(Paragraph(stil_metin, self.metin_stili))
+
+        except Exception as e:
+            logger.warning(f"PDF grafik metin ekleme hatası: {e}")
 
     def _grafik_config_bul(self, grafik_dosyasi: Path) -> dict:
         """Grafik dosyası için config ayarlarını bulur"""

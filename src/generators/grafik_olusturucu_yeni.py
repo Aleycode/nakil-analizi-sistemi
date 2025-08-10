@@ -1,5 +1,5 @@
-ï»¿"""
-Grafik oluÅŸturucu modÃ¼lÃ¼ - TÃ¼m grafik oluÅŸturma fonksiyonlarÄ±
+"""
+Grafik oluşturucu modülü - Tüm grafik oluşturma fonksiyonları
 """
 
 import logging
@@ -20,48 +20,48 @@ from ..core.config import (
     GRUP_ADI_CEVIRI,
 )
 
-# Logger yapÄ±landÄ±rmasÄ±
+# Logger yapılandırması
 logger = logging.getLogger(__name__)
 
-# Grafik ayarlarÄ±
+# Grafik ayarları
 plt.style.use("default")
 sns.set_palette("husl")
 
 
 class GrafikOlusturucu:
-    """TÃ¼m grafik oluÅŸturma iÅŸlemleri"""
+    """Tüm grafik oluşturma işlemleri"""
 
     def __init__(self):
-        """Grafik oluÅŸturucu baÅŸlatma"""
-        # Grafik klasÃ¶rÃ¼ oluÅŸtur
+        """Grafik oluşturucu başlatma"""
+        # Grafik klasörü oluştur
         RAPOR_DIZIN.mkdir(parents=True, exist_ok=True)
 
     def _grafik_baslik_olustur(self, sablon_adi: str, **kwargs) -> str:
         """
-        Config'den grafik baÅŸlÄ±k ÅŸablonunu kullanarak baÅŸlÄ±k oluÅŸturur
+        Config'den grafik başlık şablonunu kullanarak başlık oluşturur
         """
         try:
             if sablon_adi in GRAFIK_BASLIK_SABLONLARI:
                 sablon = GRAFIK_BASLIK_SABLONLARI[sablon_adi]
                 baslik = sablon.format(**kwargs)
             else:
-                # VarsayÄ±lan ÅŸablon
+                # Varsayılan şablon
                 sablon = GRAFIK_BASLIK_SABLONLARI.get("genel", "{analiz_tipi}")
                 baslik = sablon.format(**kwargs)
 
-            # Grup adlarÄ±nÄ± Ã§evir
+            # Grup adlarını çevir
             for kod, turkce in GRUP_ADI_CEVIRI.items():
                 baslik = baslik.replace(kod, turkce)
 
             return baslik
         except Exception as e:
             logger.warning(
-                f"BaÅŸlÄ±k oluÅŸturma hatasÄ±: {e}, varsayÄ±lan baÅŸlÄ±k kullanÄ±lÄ±yor"
+                f"Başlık oluşturma hatası: {e}, varsayılan başlık kullanılıyor"
             )
             return kwargs.get("analiz_tipi", "Grafik")
 
     def _tarih_klasoru_olustur(self, gun_tarihi: str) -> Path:
-        """Verilen tarih iÃ§in klasÃ¶r oluÅŸturur ve path dÃ¶ner"""
+        """Verilen tarih için klasör oluşturur ve path döner"""
         tarih_klasor = RAPOR_DIZIN / gun_tarihi
         tarih_klasor.mkdir(parents=True, exist_ok=True)
         return tarih_klasor
@@ -69,82 +69,82 @@ class GrafikOlusturucu:
     def iptal_eden_cubuk_grafigi(
         self, df: pd.DataFrame, gun_tarihi: str, grup_adi: str
     ):
-        """Ä°ptal eden daÄŸÄ±lÄ±mÄ± tek Ã§ubuk stacked grafik"""
+        """İptal eden dağılımı tek çubuk stacked grafik"""
         try:
-            # Ã–nce sadece geÃ§erli vakalarÄ± al (Analiz dÄ±ÅŸÄ± hariÃ§)
+            # Önce sadece geçerli vakaları al (Analiz dışı hariç)
             gecerli_vakalar = df[df["vaka_tipi"].isin(["Yeni Vaka", "Devreden Vaka"])]
             if len(gecerli_vakalar) == 0:
-                logger.warning(f"GeÃ§erli vaka bulunamadÄ±: {grup_adi}")
+                logger.warning(f"Geçerli vaka bulunamadı: {grup_adi}")
                 return None
 
-            # GeÃ§erli vakalar iÃ§inden iptal edilmiÅŸ olanlarÄ± al
+            # Geçerli vakalar içinden iptal edilmiş olanları al
             iptal_vakalar = gecerli_vakalar[
-                gecerli_vakalar["durum"].str.contains("Ä°ptal", na=False)
+                gecerli_vakalar["durum"].str.contains("İptal", na=False)
             ]
             if len(iptal_vakalar) == 0:
                 mesaj = (
-                    f"GeÃ§erli vakalar iÃ§inde iptal edilmiÅŸ vaka bulunamadÄ±, "
-                    f"iptal eden Ã§ubuk grafiÄŸi oluÅŸturulamadÄ±: {grup_adi}"
+                    f"Geçerli vakalar içinde iptal edilmiş vaka bulunamadı, "
+                    f"iptal eden çubuk grafiği oluşturulamadı: {grup_adi}"
                 )
                 logger.warning(mesaj)
                 return None
 
-            # Ä°ptal Eden sÃ¼tununu kontrol et
-            if "iÌ‡ptal eden" not in iptal_vakalar.columns:
-                logger.warning(f"'iÌ‡ptal eden' sÃ¼tunu bulunamadÄ±: {grup_adi}")
+            # İptal Eden sütununu kontrol et
+            if "i·ptal eden" not in iptal_vakalar.columns:
+                logger.warning(f"'i·ptal eden' sütunu bulunamadı: {grup_adi}")
                 return None
 
-            # Ä°ptal eden sayÄ±mlarÄ± (boÅŸ deÄŸerleri hariÃ§ tut)
-            iptal_eden_sayimlari = iptal_vakalar["iÌ‡ptal eden"].dropna().value_counts()
+            # İptal eden sayımları (boş değerleri hariç tut)
+            iptal_eden_sayimlari = iptal_vakalar["i·ptal eden"].dropna().value_counts()
 
             if iptal_eden_sayimlari.empty:
-                logger.warning(f"Ä°ptal eden verisi bulunamadÄ±: {grup_adi}")
+                logger.warning(f"İptal eden verisi bulunamadı: {grup_adi}")
                 return None
 
-            # En Ã§ok iptal eden ilk 10'u al
+            # En çok iptal eden ilk 10'u al
             top_iptal_eden = iptal_eden_sayimlari.head(10)
 
-            # Renk paleti - her kuruma farklÄ± renk
+            # Renk paleti - her kuruma farklı renk
             import matplotlib.cm as cm
 
             colors = cm.Set3(range(len(top_iptal_eden)))
 
-            # Tek Ã§ubuk stacked grafik oluÅŸtur
+            # Tek çubuk stacked grafik oluştur
             fig, ax = plt.subplots(figsize=(12, 6))
 
-            # KÃ¼mÃ¼latif deÄŸerler iÃ§in baÅŸlangÄ±Ã§
+            # Kümülatif değerler için başlangıç
             left = 0
 
-            # Her kurum iÃ§in stacked bar ekle (horizontal)
+            # Her kurum için stacked bar ekle (horizontal)
             for i, (kurum, sayi) in enumerate(top_iptal_eden.items()):
                 ax.barh(
-                    ["Ä°ptal Eden Kurumlar"],
+                    ["İptal Eden Kurumlar"],
                     [sayi],
                     left=left,
                     color=colors[i],
                     label=f"{kurum} ({sayi})",
                 )
-                left += sayi  # BÃ¶lge adÄ±nÄ± dÃ¼zenle
+                left += sayi  # Bölge adını düzenle
             if grup_adi == "Il_Ici":
-                bolge_adi = "Ä°l Ä°Ã§i"
+                bolge_adi = "İl İçi"
             elif grup_adi == "Il_Disi":
-                bolge_adi = "Ä°l DÄ±ÅŸÄ±"
+                bolge_adi = "İl Dışı"
             elif grup_adi == "Butun_Bolgeler":
-                bolge_adi = "BÃ¼tÃ¼n BÃ¶lgeler"
+                bolge_adi = "Bütün Bölgeler"
             else:
                 bolge_adi = grup_adi
 
-            # BaÅŸlÄ±k ve etiketler
+            # Başlık ve etiketler
             ax.set_title(
-                f"Ä°ptal Eden Kurumlar - {bolge_adi}",
+                f"İptal Eden Kurumlar - {bolge_adi}",
                 fontsize=14,
                 fontweight="bold",
                 pad=20,
             )
-            ax.set_xlabel("Vaka SayÄ±sÄ±", fontweight="bold")
+            ax.set_xlabel("Vaka Sayısı", fontweight="bold")
             ax.set_ylabel("")
 
-            # Legend'Ä± saÄŸ tarafa yerleÅŸtir
+            # Legend'ı sağ tarafa yerleştir
             ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
 
             # Grid
@@ -154,63 +154,63 @@ class GrafikOlusturucu:
             # Layout ayarla
             plt.tight_layout()
 
-            # Dosya adÄ±nÄ± oluÅŸtur ve kaydet
+            # Dosya adını oluştur ve kaydet
             dosya_adi = f"iptal-eden-dagilimi_{bolge_adi}_{gun_tarihi}.png"
             tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
             dosya_yolu = tarih_klasor / dosya_adi
             plt.savefig(dosya_yolu, dpi=300, bbox_inches="tight")
             plt.close()
 
-            logger.info(f"Ä°ptal eden stacked Ã§ubuk grafiÄŸi oluÅŸturuldu: {dosya_yolu}")
+            logger.info(f"İptal eden stacked çubuk grafiği oluşturuldu: {dosya_yolu}")
             return dosya_yolu
 
         except Exception as e:
-            logger.error(f"Ä°ptal eden stacked Ã§ubuk grafiÄŸi oluÅŸturma hatasÄ±: {e}")
+            logger.error(f"İptal eden stacked çubuk grafiği oluşturma hatası: {e}")
             return None
         try:
-            # Ã–nce sadece geÃ§erli vakalarÄ± al (Analiz dÄ±ÅŸÄ± hariÃ§)
+            # Önce sadece geçerli vakaları al (Analiz dışı hariç)
             gecerli_vakalar = df[df["vaka_tipi"].isin(["Yeni Vaka", "Devreden Vaka"])]
 
             if len(gecerli_vakalar) == 0:
-                logger.warning(f"GeÃ§erli vaka bulunamadÄ±: {grup_adi}")
+                logger.warning(f"Geçerli vaka bulunamadı: {grup_adi}")
                 return None
 
-            # GeÃ§erli vakalar iÃ§inden iptal edilmiÅŸ olanlarÄ± al
+            # Geçerli vakalar içinden iptal edilmiş olanları al
             iptal_vakalar = gecerli_vakalar[
-                gecerli_vakalar["durum"].str.contains("Ä°ptal", na=False)
+                gecerli_vakalar["durum"].str.contains("İptal", na=False)
             ]
 
             if len(iptal_vakalar) == 0:
                 mesaj = (
-                    f"GeÃ§erli vakalar iÃ§inde iptal edilmiÅŸ vaka bulunamadÄ±, "
-                    f"iptal eden Ã§ubuk grafiÄŸi oluÅŸturulamadÄ±: {grup_adi}"
+                    f"Geçerli vakalar içinde iptal edilmiş vaka bulunamadı, "
+                    f"iptal eden çubuk grafiği oluşturulamadı: {grup_adi}"
                 )
                 logger.warning(mesaj)
                 return None
 
-            # Ä°ptal Eden sÃ¼tununu kontrol et
-            if "iÌ‡ptal eden" not in iptal_vakalar.columns:
-                logger.warning(f"'iÌ‡ptal eden' sÃ¼tunu bulunamadÄ±: {grup_adi}")
+            # İptal Eden sütununu kontrol et
+            if "i·ptal eden" not in iptal_vakalar.columns:
+                logger.warning(f"'i·ptal eden' sütunu bulunamadı: {grup_adi}")
                 return None
 
-            # Ä°ptal eden sayÄ±mlarÄ± (boÅŸ deÄŸerleri hariÃ§ tut)
-            iptal_eden_sayimlari = iptal_vakalar["iÌ‡ptal eden"].dropna().value_counts()
+            # İptal eden sayımları (boş değerleri hariç tut)
+            iptal_eden_sayimlari = iptal_vakalar["i·ptal eden"].dropna().value_counts()
 
             if len(iptal_eden_sayimlari) == 0:
-                logger.warning(f"Ä°ptal eden verisi bulunamadÄ±: {grup_adi}")
+                logger.warning(f"İptal eden verisi bulunamadı: {grup_adi}")
                 return None
 
-            # Minimum vaka sayÄ±sÄ± kontrolÃ¼
+            # Minimum vaka sayısı kontrolü
             if iptal_eden_sayimlari.sum() < 3:
                 logger.warning(
-                    f"Yetersiz iptal vakasÄ± ({iptal_eden_sayimlari.sum()}), "
-                    f"Ã§ubuk grafiÄŸi oluÅŸturulamadÄ±: {grup_adi}"
+                    f"Yetersiz iptal vakası ({iptal_eden_sayimlari.sum()}), "
+                    f"çubuk grafiği oluşturulamadı: {grup_adi}"
                 )
                 return None
 
             plt.figure(figsize=VARSAYILAN_GRAFIK_BOYUTU)
 
-            # Yatay Ã§ubuk grafiÄŸi oluÅŸtur
+            # Yatay çubuk grafiği oluştur
             bars = plt.barh(
                 range(len(iptal_eden_sayimlari)),
                 iptal_eden_sayimlari.values,
@@ -220,23 +220,23 @@ class GrafikOlusturucu:
             # Y ekseni etiketlerini ayarla
             plt.yticks(range(len(iptal_eden_sayimlari)), iptal_eden_sayimlari.index)
 
-            # Ã‡ubuklarÄ±n Ã¼zerine sayÄ±larÄ± yaz
+            # Çubukların üzerine sayıları yaz
             for i, (kurum, sayi) in enumerate(iptal_eden_sayimlari.items()):
                 plt.text(sayi + 0.1, i, str(sayi), va="center", fontweight="bold")
 
-            # Grup adÄ±nÄ± Ã§evir
+            # Grup adını çevir
             bolge_adi = GRUP_ADI_CEVIRI.get(grup_adi, grup_adi)
 
             plt.title(
-                f"Ä°ptal Eden Kurumlar - {bolge_adi}\n"
+                f"İptal Eden Kurumlar - {bolge_adi}\n"
                 f"Toplam: {iptal_eden_sayimlari.sum()} vaka",
                 fontsize=14,
                 fontweight="bold",
                 pad=20,
             )
 
-            plt.xlabel("Vaka SayÄ±sÄ±", fontweight="bold")
-            plt.ylabel("Ä°ptal Eden Kurum", fontweight="bold")
+            plt.xlabel("Vaka Sayısı", fontweight="bold")
+            plt.ylabel("İptal Eden Kurum", fontweight="bold")
             plt.grid(True, alpha=0.3, axis="x")
             plt.tight_layout()
 
@@ -257,36 +257,36 @@ class GrafikOlusturucu:
             plt.savefig(dosya_adi, dpi=VARSAYILAN_DPI, bbox_inches="tight")
             plt.close()
 
-            logger.info(f"Ä°ptal eden Ã§ubuk grafiÄŸi oluÅŸturuldu: {dosya_adi}")
+            logger.info(f"İptal eden çubuk grafiği oluşturuldu: {dosya_adi}")
             return dosya_adi
 
         except Exception as e:
-            logger.error(f"Ä°ptal eden Ã§ubuk grafiÄŸi oluÅŸturma hatasÄ±: {e}")
+            logger.error(f"İptal eden çubuk grafiği oluşturma hatası: {e}")
             return None
 
     def pasta_grafik_olustur(self, veriler: pd.Series, baslik: str, dosya_adi: str):
-        """Pasta grafiÄŸi oluÅŸturur - hem sayÄ± hem yÃ¼zde gÃ¶sterir"""
+        """Pasta grafiği oluşturur - hem sayı hem yüzde gösterir"""
         try:
             plt.figure(figsize=VARSAYILAN_GRAFIK_BOYUTU)
 
-            # En Ã§ok 10 kategori gÃ¶ster
+            # En çok 10 kategori göster
             if len(veriler) > 10:
                 top_10 = veriler.head(10)
                 diger_toplam = veriler.iloc[10:].sum()
                 if diger_toplam > 0:
-                    top_10["DiÄŸer"] = diger_toplam
+                    top_10["Diğer"] = diger_toplam
                 veriler = top_10
 
-            # BaÅŸlÄ±ktaki grup adlarÄ±nÄ± Ã§evir
+            # Başlıktaki grup adlarını çevir
             for kod, turkce in GRUP_ADI_CEVIRI.items():
                 baslik = baslik.replace(kod, turkce)
 
-            # Hem sayÄ± hem yÃ¼zde gÃ¶stermek iÃ§in Ã¶zel etiket fonksiyonu
+            # Hem sayı hem yüzde göstermek için özel etiket fonksiyonu
             def autopct_format(pct):
                 absolute = int(round(pct / 100.0 * veriler.sum()))
                 return f"{pct:.1f}%\n({absolute:,})"
 
-            # GeliÅŸmiÅŸ renk paleti kullan
+            # Gelişmiş renk paleti kullan
             colors = PASTA_GRAFIK_RENK_PALETI[: len(veriler)]
 
             plt.pie(
@@ -300,10 +300,10 @@ class GrafikOlusturucu:
             plt.title(baslik, fontsize=14, fontweight="bold")
             plt.axis("equal")
 
-            # Tarih bilgisini dosya adÄ±ndan Ã§Ä±kar
+            # Tarih bilgisini dosya adından çıkar
             gun_tarihi = dosya_adi.split("_")[-1].replace(".png", "")
 
-            # Tarih klasÃ¶rÃ¼ oluÅŸtur ve dosyaya kaydet
+            # Tarih klasörü oluştur ve dosyaya kaydet
             tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
             dosya_yolu = tarih_klasor / dosya_adi
 
@@ -314,7 +314,7 @@ class GrafikOlusturucu:
             plt.close()
 
         except Exception as e:
-            logger.error(f"Pasta grafiÄŸi oluÅŸturma hatasÄ±: {e}")
+            logger.error(f"Pasta grafiği oluşturma hatası: {e}")
 
     def _grafige_tarih_ekle(self, plt_obj, gun_tarihi: str):
         """Grafiklere tarih bilgisi ekler"""
@@ -325,11 +325,11 @@ class GrafikOlusturucu:
             konum = GRAFIK_GORUNUM_AYARLARI.get("tarih_konum", "alt_sag")
             boyut = GRAFIK_GORUNUM_AYARLARI.get("tarih_boyut", 8)
 
-            # Tarih formatÄ±nÄ± dÃ¼zenle
+            # Tarih formatını düzenle
             tarih_obj = datetime.strptime(gun_tarihi, "%Y-%m-%d")
             tarih_text = tarih_obj.strftime("%d.%m.%Y")
 
-            # Konum ayarlarÄ±
+            # Konum ayarları
             if konum == "alt_sag":
                 x, y = 0.98, 0.02
                 ha, va = "right", "bottom"
@@ -355,65 +355,65 @@ class GrafikOlusturucu:
             )
 
         except Exception as e:
-            logger.warning(f"Tarih ekleme hatasÄ±: {e}")
+            logger.warning(f"Tarih ekleme hatası: {e}")
 
     def _tarih_klasoru_olustur(self, gun_tarihi: str) -> Path:
-        """Verilen tarih iÃ§in rapor klasÃ¶rÃ¼ oluÅŸturur"""
+        """Verilen tarih için rapor klasörü oluşturur"""
         tarih_klasor = RAPOR_DIZIN / gun_tarihi
         tarih_klasor.mkdir(parents=True, exist_ok=True)
         return tarih_klasor
 
     def threshold_pasta_grafik(self, threshold_data: dict, baslik: str, dosya_adi: str):
-        """Bekleme sÃ¼resi threshold pasta grafiÄŸi"""
+        """Bekleme süresi threshold pasta grafiği"""
         try:
             if not threshold_data:
                 return None
 
-            # Dictionary'yi Series'e Ã§evir
+            # Dictionary'yi Series'e çevir
             import pandas as pd
 
             veriler = pd.Series(threshold_data)
 
-            # Pasta grafik oluÅŸtur
+            # Pasta grafik oluştur
             self.pasta_grafik_olustur(veriler, baslik, dosya_adi)
         except Exception as e:
-            logger.error(f"Threshold pasta grafik hatasÄ±: {e}")
+            logger.error(f"Threshold pasta grafik hatası: {e}")
 
     def vaka_tipi_pasta_grafigi(self, df: pd.DataFrame, gun_tarihi: str, grup_adi: str):
-        """Vaka tipi daÄŸÄ±lÄ±mÄ± pasta grafiÄŸi (Yeni/Devreden)"""
+        """Vaka tipi dağılımı pasta grafiği (Yeni/Devreden)"""
         try:
-            # Sadece geÃ§erli vakalarÄ± al
+            # Sadece geçerli vakaları al
             gecerli_vakalar = df[df["vaka_tipi"].isin(["Yeni Vaka", "Devreden Vaka"])]
 
             if len(gecerli_vakalar) == 0:
-                logger.warning(f"Vaka tipi iÃ§in geÃ§erli vaka bulunamadÄ±: {grup_adi}")
+                logger.warning(f"Vaka tipi için geçerli vaka bulunamadı: {grup_adi}")
                 return None
 
-            # Vaka tipi sayÄ±mlarÄ±
+            # Vaka tipi sayımları
             vaka_tipi_sayimlari = gecerli_vakalar["vaka_tipi"].value_counts()
 
-            # Grup adÄ±nÄ± TÃ¼rkÃ§e'ye Ã§evir
+            # Grup adını Türkçe'ye çevir
             bolge_adi = GRUP_ADI_CEVIRI.get(grup_adi, grup_adi)
 
-            baslik = f"Vaka Tipi DaÄŸÄ±lÄ±mÄ± - {bolge_adi}"
+            baslik = f"Vaka Tipi Dağılımı - {bolge_adi}"
             turkce_dosya_adi = GRUP_ADI_CEVIRI.get(grup_adi, grup_adi)
             dosya_adi = f"il-dagilimi_{turkce_dosya_adi}_{gun_tarihi}.png"
 
-            # Pasta grafik oluÅŸtur
+            # Pasta grafik oluştur
             self.pasta_grafik_olustur(vaka_tipi_sayimlari, baslik, dosya_adi)
 
-            # Dosya yolunu dÃ¶ndÃ¼r
+            # Dosya yolunu döndür
             tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
             return tarih_klasor / dosya_adi
 
         except Exception as e:
-            logger.error(f"Vaka tipi pasta grafiÄŸi hatasÄ±: {e}")
+            logger.error(f"Vaka tipi pasta grafiği hatası: {e}")
             return None
 
     def il_dagilim_pasta_grafigi(self, il_gruplari: dict, gun_tarihi: str):
-        """BÃ¶lge daÄŸÄ±lÄ±mÄ± Ã§ubuk grafiÄŸi (Ä°l Ä°Ã§i/Ä°l DÄ±ÅŸÄ±)"""
+        """Bölge dağılımı çubuk grafiği (İl İçi/İl Dışı)"""
         try:
-            # Sadece Ä°l Ä°Ã§i ve Ä°l DÄ±ÅŸÄ±'nÄ± kullan (Butun_Bolgeler hariÃ§)
+            # Sadece İl İçi ve İl Dışı'nı kullan (Butun_Bolgeler hariç)
             il_ici_sayisi = 0
             il_disi_sayisi = 0
 
@@ -433,132 +433,126 @@ class GrafikOlusturucu:
                 ]
                 il_disi_sayisi = len(il_disi_gecerli)
 
-            # Ä°l daÄŸÄ±lÄ±mÄ± dictionary'sini oluÅŸtur
-            il_dagilim = {"Ä°l Ä°Ã§i": il_ici_sayisi, "Ä°l DÄ±ÅŸÄ±": il_disi_sayisi}
+            # İl dağılımı dictionary'sini oluştur
+            il_dagilim = {"İl İçi": il_ici_sayisi, "İl Dışı": il_disi_sayisi}
 
             if not il_dagilim or sum(il_dagilim.values()) == 0:
-                logger.warning("BÃ¶lge daÄŸÄ±lÄ±mÄ± iÃ§in geÃ§erli vaka bulunamadÄ±")
+                logger.warning("Bölge dağılımı için geçerli vaka bulunamadı")
                 return None
 
-            # Pandas Series'e Ã§evir
+            # Pandas Series'e çevir
             import pandas as pd
 
             il_dagilim_series = pd.Series(il_dagilim)
 
-            baslik = "BÃ¶lge DaÄŸÄ±lÄ±mÄ±"
+            baslik = "Bölge Dağılımı"
             dosya_adi = f"il-dagilimi_Butun_Vakalar_{gun_tarihi}.png"
 
-            # Pasta grafik oluÅŸtur
+            # Pasta grafik oluştur
             self.pasta_grafik_olustur(il_dagilim_series, baslik, dosya_adi)
 
-            # Dosya yolunu dÃ¶ndÃ¼r
+            # Dosya yolunu döndür
             tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
             return tarih_klasor / dosya_adi
 
         except Exception as e:
-            logger.error(f"BÃ¶lge daÄŸÄ±lÄ±mÄ± Ã§ubuk grafiÄŸi hatasÄ±: {e}")
+            logger.error(f"Bölge dağılımı çubuk grafiği hatası: {e}")
             return None
 
     def solunum_islemi_pasta_grafigi(
         self, df: pd.DataFrame, gun_tarihi: str, grup_adi: str
     ):
-        """Solunum iÅŸlemi daÄŸÄ±lÄ±mÄ± pasta grafiÄŸi"""
+        """Solunum işlemi dağılımı pasta grafiği"""
         try:
-            # Sadece geÃ§erli vakalarÄ± al
+            # Sadece geçerli vakaları al
             gecerli_vakalar = df[df["vaka_tipi"].isin(["Yeni Vaka", "Devreden Vaka"])]
 
             if len(gecerli_vakalar) == 0:
                 logger.warning(
-                    f"Solunum iÅŸlemi iÃ§in geÃ§erli vaka bulunamadÄ±: {grup_adi}"
+                    f"Solunum işlemi için geçerli vaka bulunamadı: {grup_adi}"
                 )
                 return None
 
-            # Solunum iÅŸlemi sÃ¼tununu kontrol et
+            # Solunum işlemi sütununu kontrol et
             solunum_sutun = None
-            for sutun in [
-                "solunum iÌ‡ÅŸlemi",
-                "solunum iÅŸlemi",
-                "solunum_islemi",
-                "Solunum Ä°ÅŸlemi",
-                "solunum durumu",
-            ]:
+            for sutun in ["solunum işlemi", "solunum_islemi", "Solunum İşlemi"]:
                 if sutun in gecerli_vakalar.columns:
                     solunum_sutun = sutun
                     break
 
             if solunum_sutun is None:
-                logger.warning(f"Solunum iÅŸlemi sÃ¼tunu bulunamadÄ±: {grup_adi}")
+                logger.warning(f"Solunum işlemi sütunu bulunamadı: {grup_adi}")
                 return None
 
-            # Solunum iÅŸlemi sayÄ±mlarÄ± (boÅŸ deÄŸerleri hariÃ§ tut)
+            # Solunum işlemi sayımları (boş değerleri hariç tut)
             solunum_sayimlari = gecerli_vakalar[solunum_sutun].dropna().value_counts()
 
             if len(solunum_sayimlari) == 0:
-                logger.warning(f"Solunum iÅŸlemi verisi bulunamadÄ±: {grup_adi}")
+                logger.warning(f"Solunum işlemi verisi bulunamadı: {grup_adi}")
                 return None
 
-            # Grup adÄ±nÄ± TÃ¼rkÃ§e'ye Ã§evir
+            # Grup adını Türkçe'ye çevir
             bolge_adi = GRUP_ADI_CEVIRI.get(grup_adi, grup_adi)
 
-            baslik = f"Solunum Ä°ÅŸlemi DaÄŸÄ±lÄ±mÄ± - {bolge_adi}"
+            baslik = f"Solunum İşlemi Dağılımı - {bolge_adi}"
             turkce_dosya_adi = GRUP_ADI_CEVIRI.get(grup_adi, grup_adi)
             dosya_adi = f"solunum-islemi-dagilimi_{turkce_dosya_adi}_{gun_tarihi}.png"
 
-            # Pasta grafik oluÅŸtur
+            # Pasta grafik oluştur
             self.pasta_grafik_olustur(solunum_sayimlari, baslik, dosya_adi)
 
-            # Dosya yolunu dÃ¶ndÃ¼r
+            # Dosya yolunu döndür
             tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
             return tarih_klasor / dosya_adi
 
         except Exception as e:
-            logger.error(f"Solunum iÅŸlemi pasta grafiÄŸi hatasÄ±: {e}")
+            logger.error(f"Solunum işlemi pasta grafiği hatası: {e}")
             return None
 
     def iptal_nedenleri_cubuk_grafigi(
         self, df: pd.DataFrame, gun_tarihi: str, grup_adi: str, vaka_tipi: str
     ):
-        """Ä°ptal nedenleri Ã§ubuk grafiÄŸi"""
+        """İptal nedenleri çubuk grafiği"""
         try:
-            # Sadece geÃ§erli vakalarÄ± al
+            # Sadece geçerli vakaları al
             gecerli_vakalar = df[df["vaka_tipi"].isin(["Yeni Vaka", "Devreden Vaka"])]
 
             if len(gecerli_vakalar) == 0:
                 logger.warning(
-                    f"Ä°ptal nedenleri iÃ§in geÃ§erli vaka bulunamadÄ±: {grup_adi}"
+                    f"İptal nedenleri için geçerli vaka bulunamadı: {grup_adi}"
                 )
                 return None
 
-            # Ä°ptal edilmiÅŸ vakalarÄ± al
+            # İptal edilmiş vakaları al
             iptal_vakalar = gecerli_vakalar[
-                gecerli_vakalar["durum"].str.contains("Ä°ptal", na=False)
+                gecerli_vakalar["durum"].str.contains("İptal", na=False)
             ]
 
             if len(iptal_vakalar) == 0:
-                logger.warning(f"Ä°ptal edilmiÅŸ vaka bulunamadÄ±: {grup_adi}")
+                logger.warning(f"İptal edilmiş vaka bulunamadı: {grup_adi}")
                 return None
 
-            # Ä°ptal nedeni sÃ¼tununu kontrol et
+            # İptal nedeni sütununu kontrol et
             iptal_nedeni_sutun = None
-            for sutun in ["iptal nedeni", "iptal_nedeni", "Ä°ptal Nedeni"]:
+            for sutun in ["iptal nedeni", "iptal_nedeni", "İptal Nedeni"]:
                 if sutun in iptal_vakalar.columns:
                     iptal_nedeni_sutun = sutun
                     break
 
             if iptal_nedeni_sutun is None:
-                logger.warning(f"Ä°ptal nedeni sÃ¼tunu bulunamadÄ±: {grup_adi}")
+                logger.warning(f"İptal nedeni sütunu bulunamadı: {grup_adi}")
                 return None
 
-            # Ä°ptal nedeni sayÄ±mlarÄ± (boÅŸ deÄŸerleri hariÃ§ tut)
+            # İptal nedeni sayımları (boş değerleri hariç tut)
             iptal_nedeni_sayimlari = (
                 iptal_vakalar[iptal_nedeni_sutun].dropna().value_counts()
             )
 
             if len(iptal_nedeni_sayimlari) == 0:
-                logger.warning(f"Ä°ptal nedeni verisi bulunamadÄ±: {grup_adi}")
+                logger.warning(f"İptal nedeni verisi bulunamadı: {grup_adi}")
                 return None
 
-            # Ã‡ubuk grafik oluÅŸtur
+            # Çubuk grafik oluştur
             plt.figure(figsize=VARSAYILAN_GRAFIK_BOYUTU)
             renkler = PASTA_GRAFIK_RENK_PALETI[: len(iptal_nedeni_sayimlari)]
 
@@ -568,7 +562,7 @@ class GrafikOlusturucu:
                 color=renkler,
             )
 
-            # SayÄ±larÄ± Ã§ubuklarÄ±n Ã¼zerinde gÃ¶ster
+            # Sayıları çubukların üzerinde göster
             for bar, sayi in zip(bars, iptal_nedeni_sayimlari.values):
                 height = bar.get_height()
                 plt.text(
@@ -586,15 +580,15 @@ class GrafikOlusturucu:
                 rotation=45,
                 ha="right",
             )
-            plt.ylabel("Vaka SayÄ±sÄ±", fontsize=12, fontweight="bold")
+            plt.ylabel("Vaka Sayısı", fontsize=12, fontweight="bold")
             plt.grid(axis="y", alpha=0.3)
 
-            # Grup adÄ±nÄ± TÃ¼rkÃ§e'ye Ã§evir
+            # Grup adını Türkçe'ye çevir
             bolge_adi = GRUP_ADI_CEVIRI.get(grup_adi, grup_adi)
             vaka_tipi_adi = GRUP_ADI_CEVIRI.get(vaka_tipi, vaka_tipi)
 
             plt.title(
-                f"Ä°ptal Nedenleri - {bolge_adi} - {vaka_tipi_adi}\n"
+                f"İptal Nedenleri - {bolge_adi} - {vaka_tipi_adi}\n"
                 f"Toplam: {iptal_nedeni_sayimlari.sum()} vaka",
                 fontsize=14,
                 fontweight="bold",
@@ -619,11 +613,11 @@ class GrafikOlusturucu:
             plt.savefig(dosya_adi, dpi=VARSAYILAN_DPI, bbox_inches="tight")
             plt.close()
 
-            logger.info(f"Ä°ptal nedenleri Ã§ubuk grafiÄŸi oluÅŸturuldu: {dosya_adi}")
+            logger.info(f"İptal nedenleri çubuk grafiği oluşturuldu: {dosya_adi}")
             return dosya_adi
 
         except Exception as e:
-            logger.error(f"Ä°ptal nedenleri Ã§ubuk grafiÄŸi hatasÄ±: {e}")
+            logger.error(f"İptal nedenleri çubuk grafiği hatası: {e}")
             if "plt" in locals():
                 plt.close()
             return None
@@ -631,7 +625,7 @@ class GrafikOlusturucu:
     def _grafige_metin_ekle(self, plt_obj, dosya_adi: str, gun_tarihi: str):
         """Grafiklere config'den gelen metinleri ekler"""
         try:
-            # PDF config dosyasÄ±nÄ± oku
+            # PDF config dosyasını oku
             import json
             from pathlib import Path
 
@@ -648,15 +642,15 @@ class GrafikOlusturucu:
             if not metin_ayarlari.get("metin_ekleme_aktif", False):
                 return
 
-            # Dosya adÄ±ndan grafik tipini belirle
+            # Dosya adından grafik tipini belirle
             dosya_adi_base = Path(dosya_adi).stem
 
-            # Ã–zel metin var mÄ± kontrol et
+            # Özel metin var mı kontrol et
             ozel_metinler = metin_ayarlari.get("ozel_metinler", {})
             metin_config = None
 
             for desen, config_item in ozel_metinler.items():
-                # Basit wildcard eÅŸleÅŸmesi
+                # Basit wildcard eşleşmesi
                 desen_temiz = desen.replace("*", "")
                 if desen_temiz in dosya_adi_base:
                     metin_config = config_item
@@ -681,13 +675,13 @@ class GrafikOlusturucu:
             # Tarihi metne ekle
             metin = metin.replace("2025-08-08", gun_tarihi)
 
-            # Font aÄŸÄ±rlÄ±ÄŸÄ±
+            # Font ağırlığı
             fontweight = "bold" if font_kalin else "normal"
 
             # Metin rengini al
             metin_rengi = metin_ayarlari.get("metin_rengi", "#333333")
 
-            # Grafik boyutlarÄ±nÄ± al
+            # Grafik boyutlarını al
             fig = plt_obj.gcf()
             fig_width, fig_height = fig.get_size_inches()
 
@@ -726,12 +720,12 @@ class GrafikOlusturucu:
                 plt_obj.subplots_adjust(top=0.85)
 
         except Exception as e:
-            logger.warning(f"Grafik metin ekleme hatasÄ±: {e}")
+            logger.warning(f"Grafik metin ekleme hatası: {e}")
 
     def iptal_eden_karsilastirma_grafigi_eski(
         self, il_gruplari: Dict[str, pd.DataFrame], gun_tarihi: str
     ):
-        """Eski fonksiyon - devre dÄ±ÅŸÄ± bÄ±rakÄ±ldÄ±"""
+        """Eski fonksiyon - devre dışı bırakıldı"""
         return None
 
     def iptal_eden_karsilastirma_grafigi(
@@ -742,7 +736,6 @@ class GrafikOlusturucu:
             # Ä°l iÃ§i ve il dÄ±ÅŸÄ± verilerini al
             il_ici_df = il_gruplari.get("Il_Ici", pd.DataFrame())
             il_disi_df = il_gruplari.get("Il_Disi", pd.DataFrame())
-
             if il_ici_df.empty and il_disi_df.empty:
                 logger.warning("Ä°l iÃ§i veya il dÄ±ÅŸÄ± verisi bulunamadÄ±")
                 return None
@@ -751,38 +744,27 @@ class GrafikOlusturucu:
             def iptal_eden_sayisi_al(df):
                 if df.empty:
                     return {"KKM": 0, "GÃ¶nderen": 0}
-
                 # GeÃ§erli vakalarÄ± al
-                gecerli_vakalar = df[
-                    df["vaka_tipi"].isin(["Yeni Vaka", "Devreden Vaka"])
-                ]
+                gecerli_vakalar = df[df["vaka_tipi"].isin(["Yeni Vaka", "Devreden Vaka"])]
                 if len(gecerli_vakalar) == 0:
                     return {"KKM": 0, "GÃ¶nderen": 0}
-
                 # Ä°ptal edilmiÅŸ vakalarÄ± al
                 iptal_vakalar = gecerli_vakalar[
                     gecerli_vakalar["durum"].str.contains("Ä°ptal", na=False)
                 ]
                 if len(iptal_vakalar) == 0:
                     return {"KKM": 0, "GÃ¶nderen": 0}
-
                 # Ä°ptal eden sÃ¼tununu kontrol et
                 if "iÌ‡ptal eden" not in iptal_vakalar.columns:
                     return {"KKM": 0, "GÃ¶nderen": 0}
-
                 # Ä°ptal eden sayÄ±mlarÄ±
-                iptal_eden_sayimlari = (
-                    iptal_vakalar["iÌ‡ptal eden"].dropna().value_counts()
-                )
-
+                iptal_eden_sayimlari = iptal_vakalar["iÌ‡ptal eden"].dropna().value_counts()
                 # KKM ve GÃ¶nderen sayÄ±larÄ±nÄ± hesapla
                 kkm_sayi = iptal_eden_sayimlari.get("KKM", 0)
                 gonderen_sayi = sum(
-                    count
-                    for kurum, count in iptal_eden_sayimlari.items()
+                    count for kurum, count in iptal_eden_sayimlari.items()
                     if kurum != "KKM"
                 )
-
                 return {"KKM": kkm_sayi, "GÃ¶nderen": gonderen_sayi}
 
             # Ä°l iÃ§i ve il dÄ±ÅŸÄ± verilerini topla
@@ -795,122 +777,62 @@ class GrafikOlusturucu:
                 logger.warning("Ä°ptal eden veri bulunamadÄ±")
                 return None
 
-            # Grafik oluÅŸtur
-            fig, ax = plt.subplots(figsize=(14, 10))
+            # Grafik oluÅŸtur - GERÃ‡EK STACKED BAR MANTIGI
+            fig, ax = plt.subplots(figsize=(12, 6))
 
-            # Veri hazÄ±rlama - STACKED BAR Ä°Ã‡Ä°N
-            il_ici_degerler = [
-                il_ici_veriler.get("KKM", 0),
-                il_ici_veriler.get("GÃ¶nderen", 0),
-            ]
-            il_disi_degerler = [
-                il_disi_veriler.get("KKM", 0),
-                il_disi_veriler.get("GÃ¶nderen", 0),
-            ]
+            # Kategoriler ve veriler - STACKED BAR MANTIGI  
+            kategoriler = ['Ä°l DÄ±ÅŸÄ±', 'Ä°l Ä°Ã§i']  # Y ekseninde yukarÄ±dan aÅŸaÄŸÄ±ya
+            
+            # Her kategori iÃ§in KKM ve GÃ¶nderen deÄŸerleri
+            il_ici_kkm = il_ici_veriler["KKM"]
+            il_ici_gonderen = il_ici_veriler["GÃ¶nderen"] 
+            il_disi_kkm = il_disi_veriler["KKM"]
+            il_disi_gonderen = il_disi_veriler["GÃ¶nderen"]
 
-            # Y konumlarÄ±
-            y_pos = [0, 1]  # Ä°l DÄ±ÅŸÄ± ve Ä°l Ä°Ã§i iÃ§in basit pozisyonlar
-
-            # STACKED BAR MANTIGI - Yatay Ã§ubuk grafiÄŸi oluÅŸtur
+            # Y pozisyonlarÄ±
+            y_pos = [0, 1]  # Ä°l DÄ±ÅŸÄ±: 0, Ä°l Ä°Ã§i: 1
             bar_height = 0.6
 
-            # KKM deÄŸerleri (sol taraf)
-            kkm_bars = ax.barh(
-                y_pos,
-                [il_disi_degerler[0], il_ici_degerler[0]],
-                bar_height,
-                label="KKM",
-                color="#2E86AB",
-                alpha=0.8,
-            )
-            # GÃ¶nderen deÄŸerleri (KKM'nin Ã¼zerine)
-            gonderen_bars = ax.barh(
-                y_pos,
-                [il_disi_degerler[1], il_ici_degerler[1]],
-                bar_height,
-                left=[il_disi_degerler[0], il_ici_degerler[0]],
-                label="GÃ¶nderen",
-                color="#A23B72",
-                alpha=0.8,
-            )
+            # Stacked bar - KKM deÄŸerleri (sol taraf)
+            bars_kkm = ax.barh(y_pos, [il_disi_kkm, il_ici_kkm], bar_height,
+                              label='KKM', color='#2E86AB', alpha=0.8)
+
+            # Stacked bar - GÃ¶nderen deÄŸerleri (KKM'nin Ã¼zerine) 
+            bars_gonderen = ax.barh(y_pos, [il_disi_gonderen, il_ici_gonderen], 
+                                   bar_height, left=[il_disi_kkm, il_ici_kkm], 
+                                   label='GÃ¶nderen', color='#A23B72', alpha=0.8)
 
             # DeÄŸerleri Ã§ubuklarÄ±n Ã¼zerine yaz
             # KKM deÄŸerleri
-            if il_disi_degerler[0] > 0:
-                ax.text(
-                    il_disi_degerler[0] / 2,
-                    0,
-                    str(il_disi_degerler[0]),
-                    ha="center",
-                    va="center",
-                    fontweight="bold",
-                    fontsize=10,
-                )
-            if il_ici_degerler[0] > 0:
-                ax.text(
-                    il_ici_degerler[0] / 2,
-                    1,
-                    str(il_ici_degerler[0]),
-                    ha="center",
-                    va="center",
-                    fontweight="bold",
-                    fontsize=10,
-                )
+            if il_disi_kkm > 0:
+                ax.text(il_disi_kkm/2, y_pos[0], str(il_disi_kkm),
+                       ha='center', va='center', fontweight='bold', fontsize=10)
+            if il_ici_kkm > 0:
+                ax.text(il_ici_kkm/2, y_pos[1], str(il_ici_kkm),
+                       ha='center', va='center', fontweight='bold', fontsize=10)
 
             # GÃ¶nderen deÄŸerleri
-            if il_disi_degerler[1] > 0:
-                ax.text(
-                    il_disi_degerler[0] + il_disi_degerler[1] / 2,
-                    0,
-                    str(il_disi_degerler[1]),
-                    ha="center",
-                    va="center",
-                    fontweight="bold",
-                    fontsize=10,
-                )
-            if il_ici_degerler[1] > 0:
-                ax.text(
-                    il_ici_degerler[0] + il_ici_degerler[1] / 2,
-                    1,
-                    str(il_ici_degerler[1]),
-                    ha="center",
-                    va="center",
-                    fontweight="bold",
-                    fontsize=10,
-                )
+            if il_disi_gonderen > 0:
+                ax.text(il_disi_kkm + il_disi_gonderen/2, y_pos[0], 
+                       str(il_disi_gonderen), ha='center', va='center', 
+                       fontweight='bold', fontsize=10)
+            if il_ici_gonderen > 0:
+                ax.text(il_ici_kkm + il_ici_gonderen/2, y_pos[1], 
+                       str(il_ici_gonderen), ha='center', va='center',
+                       fontweight='bold', fontsize=10)
 
             # Eksen ayarlarÄ±
             ax.set_yticks(y_pos)
-            ax.set_yticklabels(["Ä°l DÄ±ÅŸÄ±", "Ä°l Ä°Ã§i"], fontsize=12)
-            ax.set_xlabel("Ä°ptal Vaka SayÄ±sÄ±", fontweight="bold", fontsize=12)
-            ax.set_title("Ä°ptal Eden Kurumlar", fontsize=16, fontweight="bold", pad=20)
+            ax.set_yticklabels(kategoriler, fontsize=12)
+            ax.set_xlabel('Ä°ptal Vaka SayÄ±sÄ±', fontweight='bold', fontsize=12)
+            ax.set_title('Ä°ptal Eden Kurumlar', fontsize=16, 
+                        fontweight='bold', pad=20)
 
             # Legend
-            ax.legend(loc="lower right", fontsize=11)
+            ax.legend(loc='lower right', fontsize=11)
 
             # Grid
-            ax.grid(axis="x", alpha=0.3)
-
-            # Ä°statistikler
-            il_ici_toplam = sum(il_ici_degerler)
-            il_disi_toplam = sum(il_disi_degerler)
-            genel_toplam = il_ici_toplam + il_disi_toplam
-
-            # Alt bilgi
-            istatistik_metni = (
-                f"Ä°l Ä°Ã§i Toplam: {il_ici_toplam}\n"
-                f"Ä°l DÄ±ÅŸÄ± Toplam: {il_disi_toplam}\n"
-                f"Genel Toplam: {genel_toplam}"
-            )
-            ax.text(
-                0.02,
-                0.98,
-                istatistik_metni,
-                transform=ax.transAxes,
-                fontsize=10,
-                verticalalignment="top",
-                bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8),
-            )
+            ax.grid(axis='x', alpha=0.3)
 
             plt.tight_layout()
 
@@ -927,7 +849,8 @@ class GrafikOlusturucu:
         except Exception as e:
             logger.error(f"Ä°ptal eden karÅŸÄ±laÅŸtÄ±rma grafiÄŸi oluÅŸturma hatasÄ±: {e}")
             return None
+            return None
 
     def _grafige_tarih_ekle_eski(self, plt_obj, gun_tarihi: str):
-        """Eski tarih ekleme fonksiyonu - kullanÄ±lmÄ±yor artÄ±k"""
+        """Eski tarih ekleme fonksiyonu - kullanılmıyor artık"""
         pass
