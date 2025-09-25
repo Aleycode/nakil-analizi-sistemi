@@ -1,6 +1,8 @@
-# Nakil Z-Raporu Analiz Sistemi
+# 🏥 Nakil Z-Raporu Analiz Sistemi
 
-Bu proje hasta nakil işlemleri için Excel dosyalarını işleyip parquet formatına dönüştüren ve kapsamlı analiz eden bir Python uygulamasıdır.
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-name.streamlit.app)
+
+Bu proje hasta nakil işlemleri için Excel dosyalarını işleyip parquet formatına dönüştüren ve kapsamlı analiz eden bir Python web uygulamasıdır. Streamlit ile geliştirilmiş kullanıcı dostu arayüzü ile hastane nakil verilerinizi kolayca analiz edebilirsiniz.
 
 ## 🏗️ Modüler Mimari
 
