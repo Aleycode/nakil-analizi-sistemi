@@ -85,7 +85,7 @@ class KapakSayfasiOlusturucu:
     def _turkce_font_ekle(self):
         """Türkçe karakter desteği için font ekler"""
         try:
-            proje_kok = Path(__file__).parent
+            proje_kok = Path(__file__).parent.parent.parent
 
             # DejaVu Sans fontlarını kaydet
             font_dosyalari = [
@@ -104,6 +104,8 @@ class KapakSayfasiOlusturucu:
                         logger.info(f"{font_name} fontu başarıyla yüklendi")
                     except Exception as e:
                         logger.warning(f"{font_name} fontu yüklenemedi: {e}")
+                else:
+                    logger.warning(f"Font dosyası bulunamadı: {font_full_path}")
 
             if fonts_registered:
                 try:

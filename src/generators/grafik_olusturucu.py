@@ -29,6 +29,88 @@ sns.set_palette("husl")
 
 
 class GrafikOlusturucu:
+    def pdf_sayfalari_yatay_birlestir(self, pdf_path: str, cikti_pdf: str = None):
+        """
+        Mevcut PDF raporundaki tüm sayfaları yatay A4 formatında tek bir sayfada birleştirir.
+        """
+        from pdf2image import convert_from_path
+        from PIL import Image
+        from fpdf import FPDF
+        import os
+        # PDF'i görsellere çevir
+        sayfa_gorselleri = convert_from_path(pdf_path, dpi=200)
+        # Yatay grid için toplam genişlik ve maksimum yükseklik
+        toplam_genislik = sum(img.width for img in sayfa_gorselleri)
+        max_yukseklik = max(img.height for img in sayfa_gorselleri)
+        # Grid görseli oluştur
+        grid_img = Image.new("RGB", (toplam_genislik, max_yukseklik), (255, 255, 255))
+        x_offset = 0
+        for img in sayfa_gorselleri:
+            grid_img.paste(img, (x_offset, 0))
+            x_offset += img.width
+        # Geçici olarak kaydet
+        grid_jpg = os.path.splitext(pdf_path)[0] + "_yatay_grid.jpg"
+        grid_img.save(grid_jpg)
+        # PDF olarak kaydet
+        if cikti_pdf is None:
+            cikti_pdf = os.path.splitext(pdf_path)[0] + "_yatay.pdf"
+        pdf = FPDF(orientation="L", unit="pt", format=[grid_img.width, grid_img.height])
+        pdf.add_page()
+        pdf.image(grid_jpg, x=0, y=0, w=grid_img.width, h=grid_img.height)
+        pdf.output(cikti_pdf)
+        return cikti_pdf
+    def tum_grafikleri_pdfde_birlestir(self, gun_tarihi: str, pdf_adi: str = None):
+        """
+        Belirtilen tarih klasöründeki tüm grafik ve tablo görsellerini yatay bir gridde birleştirip tek sayfa PDF olarak kaydeder.
+        """
+        import glob
+        from PIL import Image
+        from fpdf import FPDF
+        import math
+        # Grafik klasörünü bul
+        tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
+        # PNG dosyalarını topla (alfabetik sıralı)
+        png_listesi = sorted(glob.glob(str(tarih_klasor / "*.png")))
+        if not png_listesi:
+            logger.warning(f"{gun_tarihi} için grafik bulunamadı.")
+            return None
+        # Görselleri aç
+        img_list = [Image.open(png).convert("RGB") for png in png_listesi]
+        # Grid ayarları: 2 satır, n/2 sütun (çok fazla grafik varsa)
+        n = len(img_list)
+        grid_cols = min(n, 4)  # max 4 sütun
+        grid_rows = math.ceil(n / grid_cols)
+        thumb_width = 800
+        thumb_height = 600
+        # Tüm görselleri aynı boyuta getir
+        img_list = [img.resize((thumb_width, thumb_height)) for img in img_list]
+        grid_img = Image.new("RGB", (grid_cols * thumb_width, grid_rows * thumb_height), (255, 255, 255))
+        for idx, img in enumerate(img_list):
+            x = (idx % grid_cols) * thumb_width
+            y = (idx // grid_cols) * thumb_height
+            grid_img.paste(img, (x, y))
+        # Geçici olarak kaydet
+        grid_path = tarih_klasor / "tum_grafikler_grid.jpg"
+        grid_img.save(grid_path)
+        # PDF oluştur (A4 yatay)
+        if pdf_adi is None:
+            pdf_adi = f"tum_grafikler_{gun_tarihi}.pdf"
+        pdf_path = tarih_klasor / pdf_adi
+        pdf = FPDF(orientation="L", unit="mm", format="A4")
+        pdf.add_page()
+        # Görseli PDF'e ortala ve sığdır
+        page_w = pdf.w - 20
+        page_h = pdf.h - 20
+        img_w, img_h = grid_img.size
+        scale = min(page_w / img_w, page_h / img_h)
+        w = img_w * scale
+        h = img_h * scale
+        x = (pdf.w - w) / 2
+        y = (pdf.h - h) / 2
+        pdf.image(str(grid_path), x=x, y=y, w=w, h=h)
+        pdf.output(str(pdf_path))
+        logger.info(f"Tüm grafikler ve tablolar tek PDF sayfasında grid olarak birleştirildi: {pdf_path}")
+        return pdf_path
     """Tüm grafik oluşturma işlemleri"""
 
     def __init__(self):
@@ -266,6 +348,7 @@ class GrafikOlusturucu:
 
     def pasta_grafik_olustur(self, veriler: pd.Series, baslik: str, dosya_adi: str):
         """Pasta grafiği oluşturur - hem sayı hem yüzde gösterir"""
+        import os
         try:
             plt.figure(figsize=VARSAYILAN_GRAFIK_BOYUTU)
 
@@ -313,8 +396,12 @@ class GrafikOlusturucu:
             plt.savefig(dosya_yolu, dpi=VARSAYILAN_DPI, bbox_inches="tight")
             plt.close()
 
+            # Dosya gerçekten oluştu mu kontrol et
+            if not os.path.exists(dosya_yolu):
+                logger.error(f"Pasta grafiği dosyası kaydedilemedi: {dosya_yolu} (veri boyutu: {len(veriler)})")
+
         except Exception as e:
-            logger.error(f"Pasta grafiği oluşturma hatası: {e}")
+            logger.error(f"Pasta grafiği oluşturma hatası: {e} (dosya: {dosya_adi}, veri boyutu: {len(veriler)})")
 
     def _grafige_tarih_ekle(self, plt_obj, gun_tarihi: str):
         """Grafiklere tarih bilgisi ekler"""
@@ -931,3 +1018,239 @@ class GrafikOlusturucu:
     def _grafige_tarih_ekle_eski(self, plt_obj, gun_tarihi: str):
         """Eski tarih ekleme fonksiyonu - kullanılmıyor artık"""
         pass
+
+    def sure_dagilimi_histogram(self, df: pd.DataFrame, gun_tarihi: str, grafik_adi: str = "") -> str:
+        """
+        Yer bulma sürelerinin histogram grafiği
+        
+        Args:
+            df: Süre bilgileri içeren veri çerçevesi
+            gun_tarihi: Analiz tarihi
+            grafik_adi: Grafik dosya adı eki
+            
+        Returns:
+            Oluşturulan grafik dosya yolu
+        """
+        try:
+            # Tamamlanmış vakaların sürelerini al
+            tamamlanan = df[(df['durum_kategori'] == 'Tamamlandı') & 
+                           (df['yer_bulma_sure_dk'].notna())]
+            
+            if tamamlanan.empty:
+                logger.warning("Histogram için tamamlanmış vaka bulunamadı")
+                return None
+                
+            sureler = tamamlanan['yer_bulma_sure_dk']
+            
+            plt.figure(figsize=(12, 8))
+            
+            # Histogram oluştur
+            plt.hist(sureler, bins=20, alpha=0.7, color='skyblue', edgecolor='black')
+            
+            # Ortalama çizgisi ekle
+            ortalama = sureler.mean()
+            plt.axvline(ortalama, color='red', linestyle='--', linewidth=2, 
+                       label=f'Ortalama: {ortalama:.1f} dk')
+            
+            # Medyan çizgisi ekle
+            medyan = sureler.median()
+            plt.axvline(medyan, color='green', linestyle='--', linewidth=2,
+                       label=f'Medyan: {medyan:.1f} dk')
+            
+            plt.xlabel('Yer Bulma Süresi (Dakika)')
+            plt.ylabel('Vaka Sayısı')
+            plt.title(f'Yer Bulma Süresi Dağılımı - {gun_tarihi}')
+            plt.legend()
+            plt.grid(True, alpha=0.3)
+            
+            # İstatistik bilgisi ekle
+            textstr = f'Toplam Vaka: {len(sureler)}\nMin: {sureler.min():.1f} dk\nMax: {sureler.max():.1f} dk'
+            props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+            plt.text(0.02, 0.98, textstr, transform=plt.gca().transAxes, fontsize=10,
+                    verticalalignment='top', bbox=props)
+            
+            plt.tight_layout()
+            
+            # Dosya kayıt
+            ek_adi = f"_{grafik_adi}" if grafik_adi else ""
+            dosya_adi = f"yer-bulma-sure-histogram{ek_adi}_{gun_tarihi}.png"
+            tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
+            dosya_yolu = tarih_klasor / dosya_adi
+            plt.savefig(dosya_yolu, dpi=300, bbox_inches="tight")
+            plt.close()
+            
+            logger.info(f"Yer bulma süresi histogramı oluşturuldu: {dosya_yolu}")
+            return str(dosya_yolu)
+            
+        except Exception as e:
+            logger.error(f"Süre histogram grafiği hatası: {e}")
+            return None
+
+    def klinik_sure_karsilastirma(self, df: pd.DataFrame, gun_tarihi: str) -> str:
+        """
+        Klinik bazında yer bulma süresi karşılaştırma grafiği
+        
+        Args:
+            df: Süre bilgileri içeren veri çerçevesi
+            gun_tarihi: Analiz tarihi
+            
+        Returns:
+            Oluşturulan grafik dosya yolu
+        """
+        try:
+            # Klinik bazında ortalama süreleri hesapla
+            tamamlanan = df[(df['durum_kategori'] == 'Tamamlandı') & 
+                           (df['yer_bulma_sure_dk'].notna()) &
+                           (df['nakledilmesi i̇stenen klinik'].notna())]
+            
+            if tamamlanan.empty:
+                logger.warning("Klinik karşılaştırma için tamamlanmış vaka bulunamadı")
+                return None
+            
+            klinik_sure = tamamlanan.groupby('nakledilmesi i̇stenen klinik')['yer_bulma_sure_dk'].agg([
+                'mean', 'median', 'count'
+            ]).sort_values('mean', ascending=True)
+            
+            # En az 2 vaka olan klinikleri filtrele
+            klinik_sure = klinik_sure[klinik_sure['count'] >= 2]
+            
+            if klinik_sure.empty:
+                logger.warning("Yeterli veri olan klinik bulunamadı")
+                return None
+            
+            plt.figure(figsize=(14, 8))
+            
+            # Bar grafik oluştur
+            y_pos = range(len(klinik_sure))
+            bars = plt.barh(y_pos, klinik_sure['mean'], alpha=0.7, 
+                           color='lightcoral', label='Ortalama')
+            
+            # Medyan noktaları ekle
+            plt.scatter(klinik_sure['median'], y_pos, color='darkblue', 
+                       s=50, label='Medyan', zorder=5)
+            
+            # Vaka sayısını bar üzerine yaz
+            for i, (bar, count) in enumerate(zip(bars, klinik_sure['count'])):
+                plt.text(bar.get_width() + 5, bar.get_y() + bar.get_height()/2,
+                        f'{int(count)} vaka', va='center', ha='left', fontsize=9)
+            
+            plt.yticks(y_pos, klinik_sure.index)
+            plt.xlabel('Ortalama Yer Bulma Süresi (Dakika)')
+            plt.ylabel('Klinik')
+            plt.title(f'Klinik Bazında Yer Bulma Süreleri - {gun_tarihi}')
+            plt.legend()
+            plt.grid(True, alpha=0.3, axis='x')
+            
+            plt.tight_layout()
+            
+            # Dosya kayıt
+            dosya_adi = f"klinik-sure-karsilastirma_{gun_tarihi}.png"
+            tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
+            dosya_yolu = tarih_klasor / dosya_adi
+            plt.savefig(dosya_yolu, dpi=300, bbox_inches="tight")
+            plt.close()
+            
+            logger.info(f"Klinik süre karşılaştırma grafiği oluşturuldu: {dosya_yolu}")
+            return str(dosya_yolu)
+            
+        except Exception as e:
+            logger.error(f"Klinik süre karşılaştırma grafiği hatası: {e}")
+            return None
+
+    def bekleme_durumu_analizi(self, df: pd.DataFrame, gun_tarihi: str) -> str:
+        """
+        Halen bekleyen vakaların bekleme süresi analizi
+        
+        Args:
+            df: Süre bilgileri içeren veri çerçevesi
+            gun_tarihi: Analiz tarihi
+            
+        Returns:
+            Oluşturulan grafik dosya yolu
+        """
+        try:
+            # Bekleyen vakaları al
+            bekleyen = df[(df['durum_kategori'] == 'Bekliyor') & 
+                         (df['bekleme_sure_dk'].notna())]
+            
+            if bekleyen.empty:
+                logger.warning("Bekleyen vaka bulunamadı")
+                return None
+            
+            plt.figure(figsize=(12, 10))
+            
+            # 2x2 subplot oluştur
+            plt.subplot(2, 2, 1)
+            # Histogram
+            plt.hist(bekleyen['bekleme_sure_dk'], bins=15, alpha=0.7, 
+                    color='orange', edgecolor='black')
+            plt.xlabel('Bekleme Süresi (Dakika)')
+            plt.ylabel('Vaka Sayısı')
+            plt.title('Bekleme Süresi Dağılımı')
+            plt.grid(True, alpha=0.3)
+            
+            # Box plot
+            plt.subplot(2, 2, 2)
+            plt.boxplot(bekleyen['bekleme_sure_dk'])
+            plt.ylabel('Bekleme Süresi (Dakika)')
+            plt.title('Bekleme Süresi Box Plot')
+            plt.grid(True, alpha=0.3)
+            
+            # Klinik bazında bekleme
+            if 'nakledilmesi i̇stenen klinik' in bekleyen.columns:
+                klinik_bekleme = bekleyen.groupby('nakledilmesi i̇stenen klinik')['bekleme_sure_dk'].agg([
+                    'mean', 'count'
+                ]).sort_values('mean', ascending=False)
+                
+                # En az 1 vaka olan ilk 10 klinik
+                klinik_bekleme = klinik_bekleme[klinik_bekleme['count'] >= 1].head(10)
+                
+                plt.subplot(2, 2, 3)
+                if not klinik_bekleme.empty:
+                    bars = plt.bar(range(len(klinik_bekleme)), klinik_bekleme['mean'], 
+                                  alpha=0.7, color='salmon')
+                    plt.xticks(range(len(klinik_bekleme)), klinik_bekleme.index, 
+                              rotation=45, ha='right')
+                    plt.ylabel('Ortalama Bekleme (dk)')
+                    plt.title('Klinik Bazında Bekleme Süreleri')
+                    plt.grid(True, alpha=0.3)
+                    
+                    # Vaka sayısını bar üzerine yaz
+                    for bar, count in zip(bars, klinik_bekleme['count']):
+                        plt.text(bar.get_x() + bar.get_width()/2, 
+                                bar.get_height() + 5, f'{int(count)}',
+                                ha='center', va='bottom', fontsize=8)
+            
+            # Genel istatistikler
+            plt.subplot(2, 2, 4)
+            plt.axis('off')
+            stats_text = f"""Bekleyen Vaka İstatistikleri:
+            
+Toplam Bekleyen: {len(bekleyen)}
+Ortalama Bekleme: {bekleyen['bekleme_sure_dk'].mean():.1f} dk
+Medyan Bekleme: {bekleyen['bekleme_sure_dk'].median():.1f} dk
+Min Bekleme: {bekleyen['bekleme_sure_dk'].min():.1f} dk
+Max Bekleme: {bekleyen['bekleme_sure_dk'].max():.1f} dk
+
+En Uzun Bekleyen: {bekleyen['bekleme_sure_dk'].max()/60:.1f} saat
+"""
+            plt.text(0.1, 0.9, stats_text, transform=plt.gca().transAxes, 
+                    fontsize=11, verticalalignment='top',
+                    bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8))
+            
+            plt.suptitle(f'Bekleme Durumu Analizi - {gun_tarihi}', fontsize=14)
+            plt.tight_layout()
+            
+            # Dosya kayıt
+            dosya_adi = f"bekleme-durumu-analizi_{gun_tarihi}.png"
+            tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
+            dosya_yolu = tarih_klasor / dosya_adi
+            plt.savefig(dosya_yolu, dpi=300, bbox_inches="tight")
+            plt.close()
+            
+            logger.info(f"Bekleme durumu analizi oluşturuldu: {dosya_yolu}")
+            return str(dosya_yolu)
+            
+        except Exception as e:
+            logger.error(f"Bekleme durumu analizi hatası: {e}")
+            return None

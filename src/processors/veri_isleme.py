@@ -25,11 +25,67 @@ class VeriIsleme:
         """Veri işleme sınıfı başlatma"""
         self.ana_veri_dosya = ISLENMIŞ_VERI_DIZIN / "ana_veri.parquet"
 
+    def gunluk_islem(self, excel_dosya: str) -> Dict[str, Any]:
+        """Günlük Excel dosyasını işler ve hem günlük hem de ana parquet dosyalarını günceller"""
+        try:
+            # Excel dosyasını doğru engine ile oku
+            from pathlib import Path
+            excel_path = Path(excel_dosya)
+            
+            if excel_path.suffix.lower() == ".xls":
+                # .xls dosyaları için önce xlrd dene, başarısızsa pandas default engine'ini kullan
+                try:
+                    df = pd.read_excel(excel_dosya, engine="xlrd")
+                except Exception as xlrd_error:
+                    print(f"xlrd hatası: {xlrd_error}, pandas default engine deneniyor...")
+                    try:
+                        df = pd.read_excel(excel_dosya)
+                    except Exception as default_error:
+                        print(f"Default engine hatası: {default_error}")
+                        raise Exception(f"Excel dosyası okunamadı. xlrd hatası: {xlrd_error}, default engine hatası: {default_error}")
+            else:
+                df = pd.read_excel(excel_dosya, engine="openpyxl")
+            islenen_satir = len(df)
+
+            # Sütun adlarını standartlaştır (küçük harf, boşlukları temizle)
+            df.columns = [str(col).strip().lower() for col in df.columns]
+
+            tarih_str = datetime.now().strftime("%Y%m%d")
+            gunluk_dizin = ISLENMIŞ_VERI_DIZIN / f"günlük_{tarih_str}"
+            gunluk_dizin.mkdir(parents=True, exist_ok=True)
+
+            gunluk_parquet = gunluk_dizin / "veriler.parquet"
+            df.to_parquet(gunluk_parquet, index=False)
+            
+            # Ana veri dosyasını da güncelle
+            if self.ana_veri_dosya.exists():
+                mevcut_df = pd.read_parquet(self.ana_veri_dosya)
+                # Sütunları birleştirmeden önce standartlaştır
+                mevcut_df.columns = [str(col).strip().lower() for col in mevcut_df.columns]
+                birlesik_df = pd.concat([mevcut_df, df])
+                if 'vaka no' in birlesik_df.columns:
+                    birlesik_df = birlesik_df.drop_duplicates(subset=['vaka no'], keep='last')
+                birlesik_df.to_parquet(self.ana_veri_dosya, index=False)
+                logger.info(f"Ana veri dosyası güncellendi: {self.ana_veri_dosya}")
+            else:
+                df.to_parquet(self.ana_veri_dosya, index=False)
+                logger.info(f"Ana veri dosyası oluşturuldu: {self.ana_veri_dosya}")
+
+            return {
+                "işlenen_satir_sayisi": islenen_satir,
+                "gunluk_parquet": gunluk_parquet
+            }
+
+        except Exception as e:
+            logger.error(f"Veri işleme hatası: {e}", exc_info=True)
+            raise
+
     def veriyi_oku(self) -> pd.DataFrame:
-        """Ana veri dosyasını okur ve tarih sütunlarını düzeltir"""
+        """Ana veri dosyasını okur."""
         try:
             if not self.ana_veri_dosya.exists():
-                raise FileNotFoundError("Ana veri dosyası bulunamadı")
+                logger.warning(f"Ana veri dosyası bulunamadı: {self.ana_veri_dosya}. Boş DataFrame döndürülüyor.")
+                return pd.DataFrame()
 
             df = pd.read_parquet(self.ana_veri_dosya)
 
@@ -47,12 +103,27 @@ class VeriIsleme:
             # Tarih sütunlarını datetime'a çevir
             for col in tarih_sutunlari_gercek:
                 if col in df.columns:
+                    # Önce zaten datetime ise olduğu gibi bırak
+                    if pd.api.types.is_datetime64_any_dtype(df[col]):
+                        logger.info(f"'{col}' zaten datetime tipinde, atlanıyor")
+                        continue
+                        
                     # Önce NaN olmayan değerleri string'e çevir
                     df[col] = df[col].astype(str)
-                    # Türkçe tarih formatını datetime'a çevir
+                    # Hem Türkçe tarih formatını hem de ISO formatını dene
                     df[col] = pd.to_datetime(
                         df[col], format="%d-%m-%Y %H:%M:%S", errors="coerce"
                     )
+                    
+                    # Eğer hala çok fazla NaT varsa, ISO format dene
+                    nat_count = df[col].isna().sum()
+                    total_count = len(df[col])
+                    if nat_count > total_count * 0.5:  # %50'den fazla NaT varsa
+                        logger.warning(f"'{col}' Türkçe format parse başarısız ({nat_count}/{total_count} NaT), ISO format deneniyor")
+                        df_backup = df[col].astype(str)
+                        df[col] = pd.to_datetime(df_backup, errors="coerce")
+                        new_nat_count = df[col].isna().sum()
+                        logger.info(f"'{col}' ISO format parse sonucu: {new_nat_count}/{total_count} NaT")
 
             # Veri düzenleme ayarlarını uygula
             df = self._veri_duzenleme_uygula(df)
@@ -62,7 +133,7 @@ class VeriIsleme:
 
         except Exception as e:
             logger.error(f"Veri okuma hatası: {e}")
-            raise
+            return pd.DataFrame()  # Hata durumunda boş DataFrame döndür
 
     def _veri_duzenleme_uygula(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -163,10 +234,16 @@ class VeriIsleme:
                 logger.warning("oluşturma tarihi sütunu bulunamadı")
                 return df
 
+            # DEBUG: Tarih sütunu kontrolü
+            logger.info(f"DEBUG: Gelen DataFrame boyutu: {len(df)}")
+            logger.info(f"DEBUG: oluşturma tarihi sütunu tipi: {df['oluşturma tarihi'].dtype}")
+            logger.info(f"DEBUG: İlk 3 tarih değeri: {df['oluşturma tarihi'].head(3).tolist()}")
+
             # 1. O gün yeni oluşturulmuş vakalar
             yeni_vakalar_mask = (df["oluşturma tarihi"] >= dun_08) & (
                 df["oluşturma tarihi"] < bugun_08
             )
+            logger.info(f"DEBUG: Yeni vakalar mask sonucu: {yeni_vakalar_mask.sum()}")
 
             # 2. Eski ama hala aktif vakalar VEYA yer bulma tarihi analiz aralığında olanlar
             if "yer bulunma tarihi" in df.columns:
@@ -175,7 +252,7 @@ class VeriIsleme:
                     df["yer bulunma tarihi"].isna()
                 )
 
-                # Eski tarihli + yer bulma tarihi analiz aralığında = devreden ama tamamlanmış
+                # Eski tarihli + yer bulunma tarihi analiz aralığında = devreden ama tamamlanmış
                 yer_bulunma_dt = pd.to_datetime(
                     df["yer bulunma tarihi"], errors="coerce"
                 )
@@ -295,6 +372,18 @@ class VeriIsleme:
             logger.info(f"Filtreleme referans noktası: {dun_08}")
 
             # 1. FILTRELEME AŞAMASI
+            # Debug: Gelen veri hakkında bilgi
+            logger.info(f"Gelen veri boyutu: {len(df)} satır")
+            logger.info(f"Tarih aralığı denetimleri başlıyor...")
+            
+            # Manuel debug: Tarih aralığına uyan vakalar
+            if "oluşturma tarihi" in df.columns:
+                tarih_araligi_vakalar = df[
+                    (df["oluşturma tarihi"] >= dun_08) &
+                    (df["oluşturma tarihi"] < (dun_08 + timedelta(days=1)))
+                ]
+                logger.info(f"Manuel tarih aralığı kontrolü: {len(tarih_araligi_vakalar)} vaka bulundu")
+            
             # 1a. Yer Bulunma Tarihi filtrelemesi - Sadece çok eski tamamlanmış vakaları çıkar
             yer_bulunma_filtre = pd.Series([True] * len(df), index=df.index)
             if "yer bulunma tarihi" in df.columns:
@@ -401,9 +490,9 @@ class VeriIsleme:
 
                             # Kontrol 2: Yer Ayarlandı vakaları için özel kontrol
                             if durum == "Yer Ayarlandı" and pd.notna(yer_bulunma):
-                                yer_bulunma_dt = pd.to_datetime(yer_bulunma)
+                                yer_bulma_dt = pd.to_datetime(yer_bulunma)
                                 # Yer bulma tarihi analiz aralığında mı? (dün 08:00 - bugün 08:00)
-                                if dun_08 <= yer_bulunma_dt < bugun_08:
+                                if dun_08 <= yer_bulma_dt < bugun_08:
                                     is_devreden = True
 
                             if is_devreden:
@@ -425,9 +514,19 @@ class VeriIsleme:
                 df.loc[yeni_vaka_mask, "vaka_tipi"] = "Yeni Vaka"
                 df.loc[devreden_vaka_mask, "vaka_tipi"] = "Devreden Vaka"
 
+                # AKTİF VAKALAR İÇİN ÖZEL KONTROL
+                # Yer Aranıyor durumundaki vakalar devam eden vakalardır
+                aktif_vaka_mask = (
+                    genel_filtre
+                    & olusturma_mask
+                    & (df["oluşturma tarihi"] < dun_08)
+                    & (df["durum"] == "Yer Aranıyor")
+                )
+                df.loc[aktif_vaka_mask, "vaka_tipi"] = "Devreden Vaka"
+
                 # İstatistikleri logla
-                yeni_vaka_sayisi = yeni_vaka_mask.sum()
-                devreden_vaka_sayisi = devreden_vaka_mask.sum()
+                yeni_vaka_sayisi = (df["vaka_tipi"] == "Yeni Vaka").sum()
+                devreden_vaka_sayisi = (df["vaka_tipi"] == "Devreden Vaka").sum()
                 analiz_disi_sayisi = (df["vaka_tipi"] == "Analiz_Disi").sum()
                 toplam_gecerli = yeni_vaka_sayisi + devreden_vaka_sayisi
 
@@ -484,3 +583,147 @@ class VeriIsleme:
         except Exception as e:
             logger.error(f"İl bazında gruplama hatası: {e}")
             return {"Butun_Bolgeler": df}
+
+    def sure_hesaplama_ekle(self, df: pd.DataFrame, analiz_tarihi: datetime) -> pd.DataFrame:
+        """
+        Yer bulma sürelerini ve bekleme sürelerini hesaplar
+        
+        Args:
+            df: Veri çerçevesi
+            analiz_tarihi: Analiz referans tarihi
+            
+        Returns:
+            Süre bilgileri eklenmiş veri çerçevesi
+        """
+        try:
+            df_kopya = df.copy()
+            
+            # Yer bulma süresi (dakika) - tamamlanmış vakalar için
+            df_kopya['yer_bulma_sure_dk'] = np.nan
+            df_kopya['bekleme_sure_dk'] = np.nan
+            df_kopya['durum_kategori'] = 'Bilinmiyor'
+            
+            # Yer bulunmuş vakalar için süre hesaplama
+            yer_bulunmus_mask = (
+                df_kopya['yer bulunma tarihi'].notna() & 
+                df_kopya['oluşturma tarihi'].notna()
+            )
+            
+            if yer_bulunmus_mask.any():
+                sure_fark = (
+                    df_kopya.loc[yer_bulunmus_mask, 'yer bulunma tarihi'] - 
+                    df_kopya.loc[yer_bulunmus_mask, 'oluşturma tarihi']
+                )
+                df_kopya.loc[yer_bulunmus_mask, 'yer_bulma_sure_dk'] = sure_fark.dt.total_seconds() / 60
+                df_kopya.loc[yer_bulunmus_mask, 'durum_kategori'] = 'Tamamlandı'
+                
+                logger.info(f"Yer bulunmuş {yer_bulunmus_mask.sum()} vaka için süre hesaplandı")
+            
+            # Halen bekleyen vakalar için bekleme süresi
+            bekleyen_mask = (
+                df_kopya['yer bulunma tarihi'].isna() & 
+                df_kopya['oluşturma tarihi'].notna() &
+                (df_kopya['durum'].notna()) &
+                (df_kopya['durum'].str.contains('Yer Aranıyor|Beklemede|Onay Bekliyor', 
+                                               case=False, na=False))
+            )
+            
+            if bekleyen_mask.any():
+                bekleme_fark = (
+                    analiz_tarihi - df_kopya.loc[bekleyen_mask, 'oluşturma tarihi']
+                )
+                df_kopya.loc[bekleyen_mask, 'bekleme_sure_dk'] = bekleme_fark.dt.total_seconds() / 60
+                df_kopya.loc[bekleyen_mask, 'durum_kategori'] = 'Bekliyor'
+                
+                logger.info(f"Bekleyen {bekleyen_mask.sum()} vaka için bekleme süresi hesaplandı")
+            
+            return df_kopya
+            
+        except Exception as e:
+            logger.error(f"Süre hesaplama hatası: {e}")
+            return df
+
+    def sure_istatistiklerini_hesapla(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Yer bulma ve bekleme sürelerine dair istatistikleri hesaplar
+        
+        Args:
+            df: Süre bilgileri içeren veri çerçevesi
+            
+        Returns:
+            İstatistik sözlüğü
+        """
+        try:
+            istatistikler = {
+                'toplam_vaka': len(df),
+                'tamamlanan_vaka': 0,
+                'bekleyen_vaka': 0,
+                'yer_bulma_suresi': {},
+                'bekleme_suresi': {},
+                'klinik_bazinda': {}
+            }
+            
+            # Tamamlanmış vakalar
+            tamamlanan = df[df['durum_kategori'] == 'Tamamlandı']
+            if not tamamlanan.empty:
+                yer_bulma_sureler = tamamlanan['yer_bulma_sure_dk'].dropna()
+                if not yer_bulma_sureler.empty:
+                    istatistikler['tamamlanan_vaka'] = len(tamamlanan)
+                    istatistikler['yer_bulma_suresi'] = {
+                        'ortalama_dk': round(yer_bulma_sureler.mean(), 1),
+                        'medyan_dk': round(yer_bulma_sureler.median(), 1),
+                        'min_dk': round(yer_bulma_sureler.min(), 1),
+                        'max_dk': round(yer_bulma_sureler.max(), 1),
+                        'ortalama_saat': round(yer_bulma_sureler.mean() / 60, 1),
+                    }
+            
+            # Bekleyen vakalar
+            bekleyen = df[df['durum_kategori'] == 'Bekliyor']
+            if not bekleyen.empty:
+                bekleme_sureler = bekleyen['bekleme_sure_dk'].dropna()
+                if not bekleme_sureler.empty:
+                    istatistikler['bekleyen_vaka'] = len(bekleyen)
+                    istatistikler['bekleme_suresi'] = {
+                        'ortalama_dk': round(bekleme_sureler.mean(), 1),
+                        'medyan_dk': round(bekleme_sureler.median(), 1),
+                        'min_dk': round(bekleme_sureler.min(), 1),
+                        'max_dk': round(bekleme_sureler.max(), 1),
+                        'ortalama_saat': round(bekleme_sureler.mean() / 60, 1),
+                    }
+            
+            # Klinik bazında analiz
+            if 'nakledilmesi i̇stenen klinik' in df.columns:
+                for klinik in df['nakledilmesi i̇stenen klinik'].unique():
+                    if pd.isna(klinik):
+                        continue
+                        
+                    klinik_df = df[df['nakledilmesi i̇stenen klinik'] == klinik]
+                    klinik_istat = {
+                        'toplam': len(klinik_df),
+                        'tamamlanan': len(klinik_df[klinik_df['durum_kategori'] == 'Tamamlandı']),
+                        'bekleyen': len(klinik_df[klinik_df['durum_kategori'] == 'Bekliyor'])
+                    }
+                    
+                    # Klinik bazında yer bulma süresi
+                    klinik_tamamlanan = klinik_df[klinik_df['durum_kategori'] == 'Tamamlandı']
+                    if not klinik_tamamlanan.empty:
+                        sureler = klinik_tamamlanan['yer_bulma_sure_dk'].dropna()
+                        if not sureler.empty:
+                            klinik_istat['yer_bulma_ort_dk'] = round(sureler.mean(), 1)
+                            klinik_istat['yer_bulma_ort_saat'] = round(sureler.mean() / 60, 1)
+                    
+                    # Klinik bazında bekleme süresi
+                    klinik_bekleyen = klinik_df[klinik_df['durum_kategori'] == 'Bekliyor']
+                    if not klinik_bekleyen.empty:
+                        bek_sureler = klinik_bekleyen['bekleme_sure_dk'].dropna()
+                        if not bek_sureler.empty:
+                            klinik_istat['bekleme_ort_dk'] = round(bek_sureler.mean(), 1)
+                            klinik_istat['bekleme_ort_saat'] = round(bek_sureler.mean() / 60, 1)
+                    
+                    istatistikler['klinik_bazinda'][str(klinik)] = klinik_istat
+            
+            return istatistikler
+            
+        except Exception as e:
+            logger.error(f"İstatistik hesaplama hatası: {e}")
+            return {'hata': str(e)}

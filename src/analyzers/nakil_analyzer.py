@@ -44,15 +44,26 @@ class NakilAnalizcisi:
 
             # 1. Veri işleme
             df = self.veri_isleme.veriyi_oku()
+            if df.empty:
+                logger.warning("Ana veri boş, analiz yapılamıyor.")
+                return {} # veya hata yönetimi
+            
             df_gunluk = self.veri_isleme.gunluk_zaman_araligi_filtrele(df, gun_tarihi)
             df_gunluk = self.veri_isleme.vaka_tipi_belirle(df_gunluk, gun_tarihi)
+            
+            # Süre hesaplamalarını ekle
+            gun_datetime = datetime.strptime(gun_tarihi, "%Y-%m-%d")
+            df_gunluk = self.veri_isleme.sure_hesaplama_ekle(df_gunluk, gun_datetime)
+            
             il_gruplari = self.veri_isleme.il_bazinda_grupla(df_gunluk)
 
             # 2. Ana rapor objesi
+            # Toplam vaka sayısı = sadece geçerli vakalar (Yeni Vaka + Devreden Vaka)
+            gecerli_vakalar = df_gunluk[df_gunluk["vaka_tipi"].isin(["Yeni Vaka", "Devreden Vaka"])]
             rapor = {
                 "analiz_tarihi": gun_tarihi,
                 "analiz_zamani": datetime.now().isoformat(),
-                "toplam_vaka_sayisi": len(df_gunluk),
+                "toplam_vaka_sayisi": len(gecerli_vakalar),
                 "il_gruplari": {},
                 "genel_istatistikler": {},
                 "oluşturulan_grafikler": [],
@@ -62,6 +73,10 @@ class NakilAnalizcisi:
             if len(df_gunluk) > 0:
                 genel_stats = self.analiz_motoru.genel_istatistik_hesapla(df_gunluk)
                 rapor["genel_istatistikler"] = genel_stats
+                
+                # Süre istatistiklerini ekle
+                sure_istatistikleri = self.veri_isleme.sure_istatistiklerini_hesapla(df_gunluk)
+                rapor["sure_analizleri"] = sure_istatistikleri
 
             # 4. Her il grubu için analiz
             for il_grup_adi, il_df in il_gruplari.items():
@@ -94,6 +109,12 @@ class NakilAnalizcisi:
                     rapor["il_gruplari"][il_grup_adi][vaka_tipi][
                         "vaka_durumu"
                     ] = durum_analizi
+                    
+                    # 1.1. Süre analizi
+                    sure_analizi = self.veri_isleme.sure_istatistiklerini_hesapla(vaka_df)
+                    rapor["il_gruplari"][il_grup_adi][vaka_tipi][
+                        "sure_analizleri"
+                    ] = sure_analizi
 
                     # Grafik oluştur (vaka durumu)
                     if durum_analizi and "durum_sayilari" in durum_analizi:
@@ -104,11 +125,15 @@ class NakilAnalizcisi:
                         import pandas as pd
 
                         durum_series = pd.Series(durum_analizi["durum_sayilari"])
+                        grafik_path = f"vaka_durumu_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png"
                         self.grafik_olusturucu.pasta_grafik_olustur(
                             durum_series,
                             baslik,
-                            f"vaka_durumu_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png",
+                            grafik_path,
                         )
+                        import os
+                        if not os.path.exists(grafik_path):
+                            logger.warning(f"Grafik oluşturulamadı: {grafik_path} (veri: {len(durum_series)})")
 
                     # 2. İptal vakalar için bekleme süresi
                     iptal_analizi = self.analiz_motoru.bekleme_suresi_analizi(
@@ -135,11 +160,15 @@ class NakilAnalizcisi:
                                 grup_adi=il_grup_adi,
                                 vaka_tipi=vaka_tipi,
                             )
+                            grafik_path = f"bekleme_threshold_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png"
                             self.grafik_olusturucu.threshold_pasta_grafik(
                                 yer_analizi["threshold_analizi"],
                                 baslik,
-                                f"bekleme_threshold_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png",
+                                grafik_path,
                             )
+                            import os
+                            if not os.path.exists(grafik_path):
+                                logger.warning(f"Threshold grafik oluşturulamadı: {grafik_path} (veri: {yer_analizi['threshold_analizi']})")
 
                     # 4. Klinik dağılım analizi
                     klinik_analizi = self.klinik_analizcisi.klinik_dagilim_analizi(
@@ -156,6 +185,10 @@ class NakilAnalizcisi:
                                 vaka_df, gun_tarihi, f"{il_grup_adi}_{vaka_tipi}"
                             )
                         )
+                        import os
+                        for grafik_path in grafik_dosyalari or []:
+                            if not os.path.exists(grafik_path):
+                                logger.warning(f"Klinik grafik oluşturulamadı: {grafik_path}")
                         if grafik_dosyalari:
                             rapor["oluşturulan_grafikler"].extend(grafik_dosyalari)
 
@@ -209,6 +242,32 @@ class NakilAnalizcisi:
                     grafik_listesi = rapor["oluşturulan_grafikler"]
                     grafik_listesi.append(str(solunum_grafik_dosyasi))
 
+            # Süre analizi grafikleri
+            if df_gunluk is not None and len(df_gunluk) > 0:
+                # Yer bulma süresi histogramı 
+                histogram_dosya = self.grafik_olusturucu.sure_dagilimi_histogram(
+                    df_gunluk, gun_tarihi
+                )
+                if histogram_dosya:
+                    grafik_listesi = rapor["oluşturulan_grafikler"]
+                    grafik_listesi.append(histogram_dosya)
+                
+                # Klinik bazında süre karşılaştırması
+                klinik_sure_dosya = self.grafik_olusturucu.klinik_sure_karsilastirma(
+                    df_gunluk, gun_tarihi
+                )
+                if klinik_sure_dosya:
+                    grafik_listesi = rapor["oluşturulan_grafikler"] 
+                    grafik_listesi.append(klinik_sure_dosya)
+                
+                # Bekleme durumu analizi
+                bekleme_dosya = self.grafik_olusturucu.bekleme_durumu_analizi(
+                    df_gunluk, gun_tarihi
+                )
+                if bekleme_dosya:
+                    grafik_listesi = rapor["oluşturulan_grafikler"]
+                    grafik_listesi.append(bekleme_dosya)
+
             # Nakil bekleyen raporu oluştur (txt)
             if GRAFIK_AYARLARI.get("nakil_bekleyen_raporu", True):
                 try:
@@ -229,7 +288,7 @@ class NakilAnalizcisi:
 
             # 7. PDF raporu oluştur
             try:
-                pdf_dosya = self.pdf_olusturucu.pdf_olustur(tarih_klasor, gun_tarihi)
+                pdf_dosya = self.pdf_olusturucu.pdf_olustur(tarih_klasor, gun_tarihi, rapor)
                 if pdf_dosya:
                     rapor["pdf_raporu"] = str(pdf_dosya)
                     logger.info(f"PDF raporu oluşturuldu: {pdf_dosya}")
