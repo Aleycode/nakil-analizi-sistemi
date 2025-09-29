@@ -145,6 +145,29 @@ def configure_page():
             opacity: 0;
             width: 0;
         }
+        
+        /* Animasyonlu footer */
+        .footer-animated .footer-text {
+            animation: fadeInOut 6s ease-in-out forwards;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 1; width: auto; }
+            50% { opacity: 1; width: auto; }
+            80% { opacity: 0; width: 0; }
+            100% { opacity: 0; width: 0; }
+        }
+        
+        .footer-animated {
+            animation: shrinkFooter 6s ease-in-out forwards;
+        }
+        
+        @keyframes shrinkFooter {
+            0% { padding: 8px 12px; }
+            50% { padding: 8px 12px; }
+            80% { padding: 6px; }
+            100% { padding: 6px; }
+        }
         /* Debug paneli gizle */
         .stDeployButton {
             display: none !important;
@@ -170,27 +193,13 @@ def configure_page():
         unsafe_allow_html=True,
     )
     
-    # Footer ekle - animasyonlu geçiş
+    # Footer ekle - CSS animasyonu ile
     st.markdown(
         """
-        <div class="footer" id="footer">
+        <div class="footer footer-animated">
             <div class="footer-icon">⚡</div>
             <span class="footer-text">Created by aleynacebeci</span>
         </div>
-        
-        <script>
-        setTimeout(function() {
-            const footer = document.getElementById('footer');
-            const text = footer.querySelector('.footer-text');
-            
-            // 3 saniye sonra yazıyı gizle
-            setTimeout(function() {
-                text.style.opacity = '0';
-                text.style.width = '0';
-                footer.classList.add('footer-minimal');
-            }, 3000);
-        }, 500);
-        </script>
         """,
         unsafe_allow_html=True,
     )
