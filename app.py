@@ -103,16 +103,17 @@ def configure_page():
         }
         .footer {
             position: fixed;
-            left: 0;
-            bottom: 0;
-            width: 100%;
-            background-color: #f0f0f0;
+            right: 15px;
+            bottom: 15px;
+            background-color: rgba(240, 240, 240, 0.9);
             color: #666;
-            text-align: center;
-            padding: 10px;
-            font-size: 14px;
+            padding: 8px 12px;
+            font-size: 12px;
             z-index: 999;
-            border-top: 1px solid #ddd;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         /* Debug paneli gizle */
         .stDeployButton {
@@ -139,11 +140,11 @@ def configure_page():
         unsafe_allow_html=True,
     )
     
-    # Footer ekle
+    # Footer ekle - sağ alt köşe
     st.markdown(
         """
         <div class="footer">
-            Created by aleynacebeci 👩‍💻
+            💻 aleynacebeci
         </div>
         """,
         unsafe_allow_html=True,
