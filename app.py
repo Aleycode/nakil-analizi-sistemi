@@ -105,15 +105,30 @@ def configure_page():
             position: fixed;
             right: 15px;
             bottom: 15px;
-            background-color: rgba(240, 240, 240, 0.9);
+            background-color: rgba(240, 240, 240, 0.95);
             color: #666;
             padding: 8px 12px;
-            font-size: 12px;
+            font-size: 11px;
             z-index: 999;
             border-radius: 20px;
             border: 1px solid #ddd;
             backdrop-filter: blur(10px);
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .footer-icon {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            font-weight: bold;
         }
         /* Debug paneli gizle */
         .stDeployButton {
@@ -140,11 +155,12 @@ def configure_page():
         unsafe_allow_html=True,
     )
     
-    # Footer ekle - sağ alt köşe
+    # Footer ekle - sağ alt köşe kod ikonu ile
     st.markdown(
         """
         <div class="footer">
-            💻 aleynacebeci
+            <div class="footer-icon">⚡</div>
+            aleynacebeci
         </div>
         """,
         unsafe_allow_html=True,
