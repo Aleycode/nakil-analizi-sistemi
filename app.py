@@ -117,6 +117,7 @@ def configure_page():
             display: flex;
             align-items: center;
             gap: 6px;
+            transition: all 0.5s ease;
         }
         .footer-icon {
             width: 20px;
@@ -129,6 +130,20 @@ def configure_page():
             font-size: 10px;
             color: white;
             font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .footer-text {
+            transition: opacity 0.5s ease, width 0.5s ease;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .footer-minimal {
+            padding: 6px;
+            gap: 0;
+        }
+        .footer-minimal .footer-text {
+            opacity: 0;
+            width: 0;
         }
         /* Debug paneli gizle */
         .stDeployButton {
@@ -155,13 +170,27 @@ def configure_page():
         unsafe_allow_html=True,
     )
     
-    # Footer ekle - sağ alt köşe kod ikonu ile
+    # Footer ekle - animasyonlu geçiş
     st.markdown(
         """
-        <div class="footer">
+        <div class="footer" id="footer">
             <div class="footer-icon">⚡</div>
-            aleynacebeci
+            <span class="footer-text">Created by aleynacebeci</span>
         </div>
+        
+        <script>
+        setTimeout(function() {
+            const footer = document.getElementById('footer');
+            const text = footer.querySelector('.footer-text');
+            
+            // 3 saniye sonra yazıyı gizle
+            setTimeout(function() {
+                text.style.opacity = '0';
+                text.style.width = '0';
+                footer.classList.add('footer-minimal');
+            }, 3000);
+        }, 500);
+        </script>
         """,
         unsafe_allow_html=True,
     )
