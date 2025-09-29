@@ -42,17 +42,32 @@ DATA_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 def configure_page():
     """Streamlit sayfasını yapılandır"""
+    # Development modunu kapat
+    import logging
+    logging.getLogger().setLevel(logging.ERROR)
+    
     st.set_page_config(
         page_title="Nakil Analiz Sistemi",
         page_icon="📊",
         layout="wide",
         initial_sidebar_state="expanded",
-        menu_items={
-            'Get Help': None,
-            'Report a bug': None,
-            'About': "Nakil Analiz Sistemi © 2025"
-        }
+        menu_items=None
     )
+    
+    # Streamlit stil düzenlemeleri
+    hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stDeployButton {display:none;}
+    .stDecoration {display:none;}
+    header {visibility: hidden;}
+    .stApp > header {display: none;}
+    .css-1rs6os {display: none;}
+    .css-17ziqus {display: none;}
+    </style>
+    """
+    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
     
     # Özel CSS
     st.markdown(
@@ -86,7 +101,50 @@ def configure_page():
             border-radius: 0.3rem;
             text-decoration: none;
         }
+        .footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background-color: #f0f0f0;
+            color: #666;
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            z-index: 999;
+            border-top: 1px solid #ddd;
+        }
+        /* Debug paneli gizle */
+        .stDeployButton {
+            display: none !important;
+        }
+        .stApp > header {
+            display: none !important;
+        }
+        .stDecoration {
+            display: none !important;
+        }
+        .element-container:has(.stAlert) {
+            display: none !important;
+        }
+        /* Streamlit menü gizle */
+        #MainMenu {
+            visibility: hidden;
+        }
+        .stActionButton {
+            visibility: hidden;
+        }
         </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
+    # Footer ekle
+    st.markdown(
+        """
+        <div class="footer">
+            Created by aleynacebeci 👩‍💻
+        </div>
         """,
         unsafe_allow_html=True,
     )
