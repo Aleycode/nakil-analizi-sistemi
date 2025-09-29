@@ -47,6 +47,11 @@ def configure_page():
         page_icon="📊",
         layout="wide",
         initial_sidebar_state="expanded",
+        menu_items={
+            'Get Help': None,
+            'Report a bug': None,
+            'About': "Nakil Analiz Sistemi © 2025"
+        }
     )
     
     # Özel CSS

@@ -8,9 +8,12 @@ textColor = "#262730"
 maxUploadSize = 200
 enableXsrfProtection = false
 headless = true
+runOnSave = false
 
 [browser]
 gatherUsageStats = false
+showErrorDetails = false
 
 [client]
-showErrorDetails = true
+showErrorDetails = false
+displayEnabled = false
