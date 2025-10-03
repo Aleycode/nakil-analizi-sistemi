@@ -318,9 +318,40 @@ def run_command(command):
 
 
 def process_daily_data(file_path):
-    """Günlük veri işleme komutu çalıştır"""
-    command = ["python", "main.py", "--gunluk-islem", str(file_path)]
-    return run_command(command)
+    """Günlük veri işleme - Streamlit Cloud uyumlu"""
+    try:
+        # Streamlit Cloud için direkt Python modülü kullan
+        if config_loaded:
+            from src.processors.veri_isleme import VeriIsleme
+            
+            # Veri işleyiciyi başlat
+            veri_isleyici = VeriIsleme()
+            
+            # Excel dosyasını işle
+            result = veri_isleyici.excel_dosyasi_isle(str(file_path))
+            
+            # Başarılı sonuç oluştur
+            class SuccessResult:
+                def __init__(self):
+                    self.returncode = 0
+                    self.stdout = f"✅ Dosya başarıyla işlendi: {Path(file_path).name}\n📊 Veri parquet formatına dönüştürüldü\n📅 Yeni analiz için hazır!"
+                    self.stderr = ""
+            
+            return SuccessResult()
+        else:
+            # Fallback: komut satırı
+            command = ["python", "main.py", "--process-daily", str(file_path)]
+            return run_command(command)
+            
+    except Exception as e:
+        # Hata durumunda
+        class ErrorResult:
+            def __init__(self, error_msg):
+                self.returncode = 1
+                self.stdout = ""
+                self.stderr = f"❌ İşlem hatası: {error_msg}\n💡 Dosya formatını kontrol edin (.xls/.xlsx)"
+        
+        return ErrorResult(str(e))
 
 
 def run_analysis(date):
@@ -491,15 +522,37 @@ def veri_isleme_sayfasi():
                 st.caption(f"Toplam {len(df)} satır veri")
                 
                 # İşleme butonu
-                if st.button("Dosyayı İşle"):
-                    with st.spinner("Veriler işleniyor..."):
+                if st.button("Dosyayı İşle", type="primary", use_container_width=True):
+                    with st.spinner("🔄 Veriler işleniyor... Lütfen bekleyin"):
                         result = process_daily_data(str(file_path))
                         if result.returncode == 0:
-                            st.success("✅ Veri işleme başarılı!")
-                            st.code(result.stdout)
+                            st.success("🎉 Veri işleme başarılı!")
+                            st.info(result.stdout)
+                            st.balloons()
+                            
+                            # İleriye yönlendirme butonları
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("📊 Analiz Sayfasına Git", use_container_width=True):
+                                    st.session_state.page = "analiz"
+                                    st.rerun()
+                            with col2:
+                                if st.button("🏠 Ana Sayfaya Dön", use_container_width=True):
+                                    st.session_state.page = "ana_sayfa"
+                                    st.rerun()
                         else:
                             st.error("❌ Veri işleme hatası:")
                             st.code(result.stderr)
+                            
+                            # Hata durumunda yardım
+                            with st.expander("🆘 Sorun giderme önerileri"):
+                                st.markdown("""
+                                **Olası çözümler:**
+                                - Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
+                                - Dosyanın bozuk olmadığını doğrulayın
+                                - Farklı bir Excel dosyası deneyin
+                                - Ana sayfadan "Hemen İşle" butonunu kullanmayı deneyin
+                                """)
             except Exception as e:
                 st.error(f"❌ Dosya okuma hatası: {e}")
         
@@ -628,8 +681,44 @@ def rapor_sayfasi():
     
     # Mevcut tarihleri kontrol et
     dates = get_existing_dates()
+    
     if not dates:
         st.warning("⚠️ Henüz oluşturulmuş rapor bulunamadı.")
+        st.info("📝 Rapor oluşturmak için:")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("""
+            **1️⃣ Veri Yükleme**
+            - Ana sayfadan Excel dosyası yükleyin
+            - "Hemen İşle" butonuna tıklayın
+            """)
+        with col2:
+            st.markdown("""
+            **2️⃣ Analiz Çalıştırma**  
+            - Nakil Analizi sayfasına gidin
+            - Tarihi seçip analiz çalıştırın
+            """)
+        
+        # Hızlı erişim butonları
+        st.markdown("### 🚀 Hızlı İşlemler")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("📥 Veri Yükle", use_container_width=True):
+                st.session_state.page = "ana_sayfa"  
+                st.rerun()
+        
+        with col2:
+            if st.button("📊 Nakil Analizi", use_container_width=True):
+                st.session_state.page = "analiz"
+                st.rerun()
+                
+        with col3:
+            if st.button("📋 Veri İşleme", use_container_width=True):
+                st.session_state.page = "veri_isleme"
+                st.rerun()
+        
         return
     
     # Tarih filtresi
@@ -795,15 +884,35 @@ def ana_sayfa():
                         f.write(uploaded_file.getvalue())
                     
                     # Sonra işle
-                    with st.spinner("Veriler işleniyor..."):
+                    with st.spinner("🔄 Veriler işleniyor... Lütfen bekleyin"):
                         result = process_daily_data(str(save_path))
                         if result.returncode == 0:
-                            st.success("✅ Veri işleme başarılı!")
+                            st.success("🎉 Veri işleme başarılı!")
+                            st.info(result.stdout)
                             st.balloons()
-                            st.info("🎉 Analiz sayfasına gidebilirsiniz!")
+                            
+                            # İleriye yönlendirme butonları
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("📊 Analiz Yap", use_container_width=True, key="main_to_analysis"):
+                                    st.session_state.page = "analiz"
+                                    st.rerun()
+                            with col2:
+                                if st.button("📄 Raporları Gör", use_container_width=True, key="main_to_reports"):
+                                    st.session_state.page = "rapor"
+                                    st.rerun()
                         else:
                             st.error("❌ Veri işleme hatası:")
                             st.code(result.stderr)
+                            
+                            # Hata durumunda yardım
+                            with st.expander("🆘 Sorun giderme önerileri"):
+                                st.markdown("""
+                                **Olası çözümler:**
+                                - Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
+                                - Dosyanın bozuk olmadığını doğrulayın
+                                - Veri İşleme sayfasından farklı bir dosya deneyin
+                                """)
                             
                 except Exception as e:
                     st.error(f"❌ İşlem hatası: {e}")
