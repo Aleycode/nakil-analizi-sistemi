@@ -237,6 +237,61 @@ def configure_page():
             background-color: #2E4057 !important;
             color: #FAFAFA !important;
         }
+        
+        /* File uploader gece modu */
+        .stFileUploader > div {
+            background-color: #2E4057 !important;
+            border: 2px dashed #4A4A4A !important;
+            border-radius: 10px !important;
+        }
+        
+        .stFileUploader > div > div {
+            color: #FAFAFA !important;
+        }
+        
+        .stFileUploader button {
+            background-color: #4A4A4A !important;
+            color: #FAFAFA !important;
+            border: 1px solid #666 !important;
+        }
+        
+        .stFileUploader button:hover {
+            background-color: #64B5F6 !important;
+            border: 1px solid #64B5F6 !important;
+        }
+        
+        /* Metrics gece modu */
+        .metric-container {
+            background-color: #1C1C1C !important;
+            border: 1px solid #333 !important;
+            border-radius: 5px !important;
+            padding: 10px !important;
+        }
+        
+        div[data-testid="metric-container"] {
+            background-color: #1C1C1C !important;
+            border: 1px solid #333 !important;
+            border-radius: 5px !important;
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="metric-container"] > div {
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="metric-container"] label {
+            color: #B0BEC5 !important;
+        }
+        
+        /* Metric değerleri */
+        [data-testid="stMetricValue"] {
+            color: #FAFAFA !important;
+            font-weight: bold !important;
+        }
+        
+        [data-testid="stMetricLabel"] {
+            color: #B0BEC5 !important;
+        }
         """
     else:
         theme_css = """
