@@ -6,12 +6,20 @@ textColor = "#262730"
 
 [server]
 maxUploadSize = 200
+enableXsrfProtection = false
 headless = true
 runOnSave = false
-port = 8501
+enableStaticServing = false
 
 [browser]
 gatherUsageStats = false
+showErrorDetails = false
+serverAddress = "0.0.0.0"
+
+[client]
+showErrorDetails = false
+displayEnabled = false
+toolbarMode = "minimal"
 
 [logger]
 level = "error"
@@ -19,3 +27,4 @@ messageFormat = "%(message)s"
 
 [global]
 developmentMode = false
+showWarningOnDirectExecution = false
