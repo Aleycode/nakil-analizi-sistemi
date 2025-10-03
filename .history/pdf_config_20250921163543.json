@@ -1,0 +1,115 @@
+{
+  "pdf_olustur": true,
+  "grafik_metin_ayarlari": {
+    "metin_ekleme_aktif": true,
+    "metin_konumu": "alt",
+    "font_boyutu": 10,
+    "font_kalin": false,
+    "metin_rengi": "#333333",
+    "arka_plan_rengi": "#ffffff",
+    "saydamlik": 0.8,
+    "kenar_boslugu": 10,
+    "ozel_metinler": {
+      "*iptal-eden-dagilimi*": {
+        "metin": "İptal eden kurumların dağılımı yatay çubuk grafiği olarak gösterilmektedir.",
+        "konum": "alt",
+        "font_boyutu": 12,
+        "font_kalin": true
+      },
+      "*iptal-eden-karsilastirma*": {
+        "metin": "İl içi ve il dışı nakillerde iptal eden kurumların karşılaştırmalı analizi.",
+        "konum": "alt",
+        "font_boyutu": 12,
+        "font_kalin": true
+      },
+      "*bekleme_threshold*": {
+        "metin": "Bekleme süresi analizi - Kritik vakalar için öncelik verilmelidir.",
+        "konum": "ust",
+        "font_boyutu": 11,
+        "font_kalin": false
+      },
+      "*bekleme-durumu-analizi*": {
+        "metin": "Nakil talepleri bekleme süreleri analizi - Önemli durum göstergesi",
+        "konum": "alt",
+        "font_boyutu": 11,
+        "font_kalin": true
+      }
+    },
+    "grafik_ozellikleri": {
+      "*vaka-tipi-dagilimi*": {
+        "metin": "Yeni Vaka: Günlük kayıtlar | Devreden Vaka: Önceki günlerden devam eden vakalar",
+        "konum": "bottom"
+      },
+      "*il-dagilimi*": {
+        "metin": "İl İçi: Aynı il sınırları içindeki nakiller | İl Dışı: İller arası nakiller",
+        "konum": "bottom"
+      },
+      "*solunum-islemi-dagilimi*": {
+        "metin": "Hasta grubuna göre solunum destek türlerinin dağılımı",
+        "konum": "bottom"
+      }
+    }
+  },
+  "grafik_sirasi": [
+    {
+      "desen": "*vaka_durumu_Butun_Bolgeler_Yeni Vaka*.png",
+      "baslik": "Vaka Durumu Analizi - Yeni Vakalar"
+    },
+    {
+      "desen": "*vaka_durumu_Butun_Bolgeler_Devreden Vaka*.png",
+      "baslik": "Vaka Durumu Analizi - Devreden Vakalar"
+    },
+    {
+      "desen": "*vaka_durumu_Butun_Bolgeler_Butun_Vakalar*.png",
+      "baslik": "Vaka Durumu Analizi - Tüm Bölgeler ve Vakalar"
+    },
+    {
+      "desen": "*vaka_durumu_Il_Disi_Butun_Vakalar*.png",
+      "baslik": "Vaka Durumu Analizi - İl Dışı Vakalar"
+    },
+    {
+      "desen": "*vaka-tipi-dagilimi_Butun_Bolgeler*.png",
+      "baslik": "Vaka Tipi Dağılımı - Tüm Bölgeler"
+    },
+    {
+      "desen": "*solunum-islemi-dagilimi_Bütün Bölgeler*.png",
+      "baslik": "Solunum İşlemi Dağılımı - Tüm Bölgeler"
+    },
+    {
+      "desen": "*il-dagilimi*.png",
+      "baslik": "İl Dağılımı - Nakil Vakalarının İllere Göre Dağılımı"
+    },
+    {
+      "desen": "klinik-dagilim*Butun_Bolgeler*Butun_Vakalar*.png",
+      "baslik": "Klinik Dağılımı - Tüm Bölgeler"
+    },
+    {
+      "desen": "*klinik_vaka_durum_Butun_Bolgeler_Butun_Vakalar*.png",
+      "baslik": "Klinik Vaka Durumları - Tüm Bölgeler ve Vakalar"
+    },
+    {
+      "desen": "*klinik_vaka_durum_Butun_Bolgeler_Devreden Vaka*.png",
+      "baslik": "Klinik Vaka Durumları - Devreden Vakalar"
+    },
+    {
+      "desen": "bekleme_threshold*Butun_Bolgeler*Butun_Vakalar*.png",
+      "baslik": "Bekleme Süreleri Analizi - Tüm Bölgeler"
+    },
+    {
+      "desen": "*iptal-nedenleri*Butun_Bolgeler*Butun_Vakalar*.png",
+      "baslik": "İptal Nedenleri Analizi - Tüm Bölgeler"
+    },
+    {
+      "desen": "*iptal-eden-kurumlar*.png",
+      "baslik": "İptal Eden Kurumlar - İl İçi vs İl Dışı"
+    },
+    {
+      "desen": "*iptal-eden-dagilimi_İl İçi*.png",
+      "baslik": "İptal Eden Kurumlar - İl İçi Nakiller"
+    },
+    {
+      "desen": "*iptal-eden-dagilimi_İl Dışı*.png",
+      "baslik": "İptal Eden Kurumlar - İl Dışı Nakiller"
+    }
+  ]
+}

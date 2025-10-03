@@ -1,0 +1,123 @@
+{
+  "pdf_olustur": true,
+  "grafik_metin_ayarlari": {
+    "metin_ekleme_aktif": true,
+    "metin_konumu": "alt",
+    "font_boyutu": 10,
+    "font_kalin": false,
+    "metin_rengi": "#333333",
+    "arka_plan_rengi": "#ffffff",
+    "saydamlik": 0.8,
+    "kenar_boslugu": 10,
+    "ozel_metinler": {
+      "*iptal-eden-dagilimi*": {
+        "metin": "İptal eden kurumların dağılımı yatay çubuk grafiği olarak gösterilmektedir.",
+        "konum": "alt",
+        "font_boyutu": 12,
+        "font_kalin": true
+      },
+      "*iptal-eden-karsilastirma*": {
+        "metin": "İl içi ve il dışı nakillerde iptal eden kurumların karşılaştırmalı analizi.",
+        "konum": "alt",
+        "font_boyutu": 12,
+        "font_kalin": true
+      },
+      "*bekleme_threshold*": {
+        "metin": "Bekleme süresi analizi - Kritik vakalar için öncelik verilmelidir.",
+        "konum": "ust",
+        "font_boyutu": 11,
+        "font_kalin": false
+      },
+      "*bekleme-durumu-analizi*": {
+        "metin": "Nakil talepleri bekleme süreleri analizi - Önemli durum göstergesi",
+        "konum": "alt",
+        "font_boyutu": 11,
+        "font_kalin": true
+      }
+    },
+    "grafik_ozellikleri": {
+      "*vaka-tipi-dagilimi*": {
+        "metin": "Yeni Vaka: Son 24 saatte kaydedilen vakalar | Devreden Vaka: Önceki günlerden devam eden vakalar | Bu analize iptal edilmiş vakalar dahil edilmemiştir",
+        "konum": "bottom"
+      },
+      "*il-dagilimi*": {
+        "metin": "İl İçi: Aynı il sınırları içinde gerçekleşen nakiller | İl Dışı: İller arası gerçekleşen uzun mesafe nakiller | Dağılımlar toplam vaka sayısı üzerinden hesaplanmıştır",
+        "konum": "bottom"
+      },
+      "*solunum-islemi-dagilimi*": {
+        "metin": "Entübe: İnvaziv mekanik ventilasyon uygulanan hastalar | Non-Entübe: Non-invaziv veya spontan solunum desteği ile takip edilen hastalar",
+        "konum": "bottom"
+      },
+      "*bekleme-durumu-analizi*": {
+        "metin": "Bu grafik nakil bekleyen hastaların kritik zaman dilimlerine göre dağılımını gösterir | Uzun beklemeler kırmızı renkle işaretlenmiştir",
+        "konum": "bottom"
+      }
+    }
+  },
+  "grafik_sirasi": [
+    {
+      "desen": "*vaka_durumu_Butun_Bolgeler_Yeni Vaka*.png",
+      "baslik": "YENİ VAKA DURUM ANALİZİ"
+    },
+    {
+      "desen": "*vaka_durumu_Butun_Bolgeler_Devreden Vaka*.png",
+      "baslik": "DEVREDEN VAKA DURUM ANALİZİ"
+    },
+    {
+      "desen": "*vaka_durumu_Butun_Bolgeler_Butun_Vakalar*.png",
+      "baslik": "TÜM VAKALAR DURUM ANALİZİ"
+    },
+    {
+      "desen": "*vaka_durumu_Il_Disi_Butun_Vakalar*.png",
+      "baslik": "İL DIŞI VAKA ANALİZİ"
+    },
+    {
+      "desen": "*vaka-tipi-dagilimi_Butun_Bolgeler*.png",
+      "baslik": "VAKA TİPİ DAĞILIMI"
+    },
+    {
+      "desen": "*solunum-islemi-dagilimi_Bütün Bölgeler*.png",
+      "baslik": "SOLUNUM DESTEĞİ DAĞILIMI"
+    },
+    {
+      "desen": "*il-dagilimi*.png",
+      "baslik": "İL BAZLI NAKİL DAĞILIMI"
+    },
+    {
+      "desen": "klinik-dagilim*Butun_Bolgeler*Butun_Vakalar*.png",
+      "baslik": "KLİNİK BAZLI DAĞILIM"
+    },
+    {
+      "desen": "*klinik_vaka_durum_Butun_Bolgeler_Butun_Vakalar*.png",
+      "baslik": "KLİNİK VAKA DURUMLARI"
+    },
+    {
+      "desen": "*klinik_vaka_durum_Butun_Bolgeler_Devreden Vaka*.png",
+      "baslik": "DEVREDEN VAKA KLİNİK DURUMLARI"
+    },
+    {
+      "desen": "bekleme_threshold*Butun_Bolgeler*Butun_Vakalar*.png",
+      "baslik": "KRİTİK BEKLEME SÜRELERİ ANALİZİ"
+    },
+    {
+      "desen": "*bekleme-durumu-analizi*.png",
+      "baslik": "NAKİL BEKLEME SÜRESİ ANALİZİ"
+    },
+    {
+      "desen": "*iptal-nedenleri*Butun_Bolgeler*Butun_Vakalar*.png",
+      "baslik": "İPTAL NEDENLERİ DAĞILIMI"
+    },
+    {
+      "desen": "*iptal-eden-kurumlar*.png",
+      "baslik": "İL İÇİ / DIŞI İPTAL EDEN KURUMLAR"
+    },
+    {
+      "desen": "*iptal-eden-dagilimi_İl İçi*.png",
+      "baslik": "İL İÇİ İPTAL EDEN KURUMLAR"
+    },
+    {
+      "desen": "*iptal-eden-dagilimi_İl Dışı*.png",
+      "baslik": "İL DIŞI İPTAL EDEN KURUMLAR"
+    }
+  ]
+}
