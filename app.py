@@ -1142,35 +1142,38 @@ def main():
         """, unsafe_allow_html=True)
         st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
     
-    # Ana sayfada alternatif menü (sidebar görünmüyorsa)
-    if st.session_state.get("page", "ana_sayfa") == "ana_sayfa":
-        # Ana sayfa içeriğinden önce hızlı menü
-        st.markdown("### 🚀 Hızlı Erişim Menüsü")
-        st.info("💡 Sol taraftaki menüyü görmüyorsanız, aşağıdaki butonları kullanabilirsiniz!")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            if st.button("🏠 Ana Sayfa", use_container_width=True, type="primary"):
-                st.session_state.page = "ana_sayfa"
-                st.rerun()
-                
-        with col2:
-            if st.button("📥 Veri İşleme", use_container_width=True):
-                st.session_state.page = "veri_isleme"
-                st.rerun()
-                
-        with col3:
-            if st.button("📊 Nakil Analizi", use_container_width=True):
-                st.session_state.page = "analiz"
-                st.rerun()
-                
-        with col4:
-            if st.button("📄 Rapor Arşivi", use_container_width=True):
-                st.session_state.page = "rapor"
-                st.rerun()
-        
-        st.markdown("---")
+    # Her sayfada hızlı erişim menüsü (sidebar alternatifi)
+    st.markdown("### 🚀 Hızlı Erişim Menüsü")
+    st.info("💡 Sol taraftaki menüyü görmüyorsanız, aşağıdaki butonları kullanabilirsiniz!")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        # Ana sayfa butonu - aktif sayfa ise farklı renk
+        button_type = "primary" if st.session_state.get("page", "ana_sayfa") == "ana_sayfa" else "secondary"
+        if st.button("🏠 Ana Sayfa", use_container_width=True, type=button_type, key="nav_ana"):
+            st.session_state.page = "ana_sayfa"
+            st.rerun()
+            
+    with col2:
+        button_type = "primary" if st.session_state.get("page") == "veri_isleme" else "secondary"
+        if st.button("📥 Veri İşleme", use_container_width=True, type=button_type, key="nav_veri"):
+            st.session_state.page = "veri_isleme"
+            st.rerun()
+            
+    with col3:
+        button_type = "primary" if st.session_state.get("page") == "analiz" else "secondary"
+        if st.button("📊 Nakil Analizi", use_container_width=True, type=button_type, key="nav_analiz"):
+            st.session_state.page = "analiz"
+            st.rerun()
+            
+    with col4:
+        button_type = "primary" if st.session_state.get("page") == "rapor" else "secondary"
+        if st.button("📄 Rapor Arşivi", use_container_width=True, type=button_type, key="nav_rapor"):
+            st.session_state.page = "rapor"
+            st.rerun()
+    
+    st.markdown("---")
     
     # Ana içerik
     if st.session_state.get("page") == "veri_isleme":
