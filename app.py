@@ -660,17 +660,17 @@ def ana_sayfa():
     # Sağlık Bakanlığı logosu - tam ortaya yerleştir
     logo_path = Path("assets/logo.png")
     if logo_path.exists():
-        # Logo için özel CSS stil
+        # Logo için özel CSS stil - küçültülmüş versiyon
         st.markdown("""
         <style>
         .centered-logo {
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 20px 0;
+            margin: 15px 0;
         }
         .centered-logo img {
-            max-width: 350px;
+            max-width: 250px;
             height: auto;
         }
         </style>
@@ -753,23 +753,100 @@ def ana_sayfa():
     
     st.markdown("---")
     
-    st.markdown("### 🚀 Özellikler")
-    col1, col2 = st.columns(2)
+    st.markdown("### 🚀 Özellikler ve Kullanım")
     
-    with col1:
-        st.markdown("""
-        - 📊 Excel veri işleme ve dönüştürme
-        - 📈 Kapsamlı veri analizi
-        - 📋 Günlük ve tarihsel veriler
-        - 🔍 Bölge ve klinik bazlı analizler
-        """)
+    # Özellikler kartları
+    features = [
+        {
+            "icon": "📊",
+            "title": "Excel Veri İşleme",
+            "description": "Yukarıdaki yükleme alanından Excel dosyasını yükleyin → Otomatik olarak Parquet formatına dönüştürülür",
+            "action": "Ana sayfadan dosya yükle"
+        },
+        {
+            "icon": "📈", 
+            "title": "Kapsamlı Veri Analizi",
+            "description": "Soldaki menüden 'Nakil Analizi' → Tarih seçin → Analiz raporlarını görüntüleyin",
+            "action": "Nakil Analizi sayfasına git"
+        },
+        {
+            "icon": "📋",
+            "title": "Günlük ve Tarihsel Veriler", 
+            "description": "Her gün yeni rapor yükleyebilir, geçmiş verileri karşılaştırabilirsiniz",
+            "action": "Veri İşleme sayfasından yönet"
+        },
+        {
+            "icon": "🔍",
+            "title": "Bölge ve Klinik Analizi",
+            "description": "Otomatik olarak bölgelere göre gruplandırma ve klinik bazlı detay analizler",
+            "action": "Analiz sonuçlarında otomatik"
+        },
+        {
+            "icon": "📉",
+            "title": "Otomatik Grafik Oluşturma", 
+            "description": "Bekleme süreleri, vaka tipleri, bölgesel dağılım grafiklerini otomatik oluşturur",
+            "action": "Analiz sonrasında otomatik"
+        },
+        {
+            "icon": "📄",
+            "title": "PDF Rapor Oluşturma",
+            "description": "Rapor Arşivi'nden istediğiniz tarihin PDF raporunu görüntüleyip indirebilirsiniz",
+            "action": "Rapor Arşivi sayfasına git"
+        }
+    ]
     
-    with col2:
+    # Özellikleri 2 sütun halinde göster
+    for i in range(0, len(features), 2):
+        col1, col2 = st.columns(2)
+        
+        # Sol sütun
+        with col1:
+            if i < len(features):
+                feature = features[i]
+                st.markdown(f"""
+                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 10px; background-color: #f9f9f9;">
+                    <h4>{feature['icon']} {feature['title']}</h4>
+                    <p style="font-size: 0.9em; color: #666;">{feature['description']}</p>
+                    <p style="font-size: 0.8em; color: #1E88E5; font-weight: bold;">➡️ {feature['action']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Sağ sütun  
+        with col2:
+            if i + 1 < len(features):
+                feature = features[i + 1]
+                st.markdown(f"""
+                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 10px; background-color: #f9f9f9;">
+                    <h4>{feature['icon']} {feature['title']}</h4>
+                    <p style="font-size: 0.9em; color: #666;">{feature['description']}</p>
+                    <p style="font-size: 0.8em; color: #1E88E5; font-weight: bold;">➡️ {feature['action']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    # Hızlı başlangıç rehberi
+    st.markdown("---")
+    st.markdown("### 🚀 Hızlı Başlangıç Rehberi")
+    
+    with st.expander("📖 İlk kez mi kullanıyorsunuz? Adım adım rehber:", expanded=False):
         st.markdown("""
-        - 📉 Otomatik grafik oluşturma
-        - 📄 PDF rapor oluşturma
-        - 💾 Parquet formatında veri saklama
-        - 📱 Kullanıcı dostu arayüz
+        #### 1️⃣ Rapor Yükleme
+        - Yukarıdaki **"Nakil Raporu Yükle"** bölümünden Excel dosyanızı seçin
+        - **"Hemen İşle"** butonuna tıklayın (dosya otomatik işlenir)
+        
+        #### 2️⃣ Analiz Görüntüleme  
+        - Sol menüden **"📊 Nakil Analizi"** sayfasına gidin
+        - İşlenen tarihten birini seçin
+        - **"Günlük Rapor Görüntüle"** seçin
+        
+        #### 3️⃣ PDF Raporu İndirme
+        - Sol menüden **"📄 Rapor Arşivi"** sayfasına gidin  
+        - İstediğiniz tarihi seçin
+        - PDF raporunu görüntüleyin veya indirin
+        
+        #### 💡 İpuçları:
+        - Her gün yeni rapor yükleyebilirsiniz
+        - Grafikler otomatik oluşturulur
+        - Tüm veriler güvenli şekilde saklanır
         """)
     
     # Sistem durumu
