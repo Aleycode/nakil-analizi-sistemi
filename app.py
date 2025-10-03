@@ -469,7 +469,9 @@ def process_simple_excel_fallback(file_path, reason="Ana sistem kullanılamıyor
 
 def run_analysis(date):
     """Analiz komutu çalıştır"""
-    command = ["python", "main.py", "--analiz", date]
+    import sys
+    python_path = sys.executable
+    command = [python_path, "main.py", "--analiz", date]
     return run_command(command)
 
 
@@ -752,7 +754,8 @@ def analiz_sayfasi():
                 try:
                     tarih_obj = datetime.strptime(selected_date, "%Y-%m-%d")
                     tarih_str = tarih_obj.strftime("%Y%m%d")
-                    alt_folder = ISLENMIŞ_VERI_DIZIN / f"günlük_{tarih_str}"
+                    processed_dir = ROOT_DIR / "data" / "processed"
+                    alt_folder = processed_dir / f"günlük_{tarih_str}"
                     
                     if alt_folder.exists():
                         st.info(f"📁 İşlenmiş veri dizininde tarih verisi bulundu: {alt_folder}")
