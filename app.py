@@ -1188,7 +1188,10 @@ def main():
         st.markdown("---")
         st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
     
-    # Her sayfada hızlı erişim menüsü (sidebar alternatifi)
+    # Ana içerik kontrol
+    current_page = st.session_state.get("page", "ana_sayfa")
+    
+    # Her sayfada hızlı erişim menüsü (sidebar alternatifi) 
     st.markdown("### 🚀 Hızlı Erişim Menüsü")
     st.info("💡 Sol taraftaki menüyü görmüyorsanız, aşağıdaki butonları kullanabilirsiniz!")
     
@@ -1196,37 +1199,37 @@ def main():
     
     with col1:
         # Ana sayfa butonu - aktif sayfa ise farklı renk
-        button_type = "primary" if st.session_state.get("page", "ana_sayfa") == "ana_sayfa" else "secondary"
+        button_type = "primary" if current_page == "ana_sayfa" else "secondary"
         if st.button("🏠 Ana Sayfa", use_container_width=True, type=button_type, key="nav_ana"):
             st.session_state.page = "ana_sayfa"
             st.rerun()
             
     with col2:
-        button_type = "primary" if st.session_state.get("page") == "veri_isleme" else "secondary"
+        button_type = "primary" if current_page == "veri_isleme" else "secondary"
         if st.button("📥 Veri İşleme", use_container_width=True, type=button_type, key="nav_veri"):
             st.session_state.page = "veri_isleme"
             st.rerun()
             
     with col3:
-        button_type = "primary" if st.session_state.get("page") == "analiz" else "secondary"
+        button_type = "primary" if current_page == "analiz" else "secondary"
         if st.button("📊 Nakil Analizi", use_container_width=True, type=button_type, key="nav_analiz"):
             st.session_state.page = "analiz"
             st.rerun()
             
     with col4:
-        button_type = "primary" if st.session_state.get("page") == "rapor" else "secondary"
+        button_type = "primary" if current_page == "rapor" else "secondary"
         if st.button("📄 Rapor Arşivi", use_container_width=True, type=button_type, key="nav_rapor"):
             st.session_state.page = "rapor"
             st.rerun()
     
     st.markdown("---")
     
-    # Ana içerik
-    if st.session_state.get("page") == "veri_isleme":
+    # Ana içerik - sayfa yönlendirmeleri
+    if current_page == "veri_isleme":
         veri_isleme_sayfasi()
-    elif st.session_state.get("page") == "analiz":
+    elif current_page == "analiz":
         analiz_sayfasi()
-    elif st.session_state.get("page") == "rapor":
+    elif current_page == "rapor":
         rapor_sayfasi()
     else:  # Ana sayfa varsayılan
         ana_sayfa()
