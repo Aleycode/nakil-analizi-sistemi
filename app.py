@@ -657,12 +657,34 @@ def ana_sayfa():
     """Ana sayfa içeriği"""
     st.markdown("<h1 class='main-header'>Nakil Z Raporu Analiz Sistemi</h1>", unsafe_allow_html=True)
     
-    # Logo veya görsel ekleme
+    # Sağlık Bakanlığı logosu - tam ortaya yerleştir
     logo_path = Path("assets/logo.png")
     if logo_path.exists():
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.image(str(logo_path), width=300)
+        # Logo için özel CSS stil
+        st.markdown("""
+        <style>
+        .centered-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .centered-logo img {
+            max-width: 350px;
+            height: auto;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Logo base64 olarak encode et ve göster
+        with open(logo_path, "rb") as f:
+            logo_data = base64.b64encode(f.read()).decode()
+        
+        st.markdown(f"""
+        <div class="centered-logo">
+            <img src="data:image/png;base64,{logo_data}" alt="Sağlık Bakanlığı Logo">
+        </div>
+        """, unsafe_allow_html=True)
     
     # Proje açıklaması
     st.markdown("""
@@ -671,6 +693,65 @@ def ana_sayfa():
     PDF rapor oluşturma özellikleriyle nakil süreçlerinin yönetimi ve analizi kolaylaştırılır.</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Rapor yükleme bölümü ekle
+    st.markdown("### 📤 Nakil Raporu Yükle")
+    
+    uploaded_file = st.file_uploader(
+        "Nakil Z Raporu Excel dosyasını (.xls) seçin ve yükleyin:",
+        type=["xls", "xlsx"],
+        help="Sağlık Bakanlığı'ndan aldığınız Nakil Vaka Talepleri Raporu dosyasını yükleyin"
+    )
+    
+    if uploaded_file is not None:
+        # Dosya bilgilerini göster
+        st.success(f"✅ Dosya yüklendi: **{uploaded_file.name}**")
+        st.info(f"📊 Dosya boyutu: {uploaded_file.size / 1024:.1f} KB")
+        
+        # Dosyayı kaydet ve işle
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("💾 Dosyayı Kaydet", type="primary", use_container_width=True):
+                try:
+                    # Dosyayı raw klasörüne kaydet
+                    save_path = DATA_RAW_DIR / uploaded_file.name
+                    DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
+                    
+                    with open(save_path, "wb") as f:
+                        f.write(uploaded_file.getvalue())
+                    
+                    st.session_state.uploaded_file_path = str(save_path)
+                    st.success(f"✅ Dosya kaydedildi: `{uploaded_file.name}`")
+                    
+                except Exception as e:
+                    st.error(f"❌ Dosya kaydetme hatası: {e}")
+        
+        with col2:
+            if st.button("⚡ Hemen İşle", type="secondary", use_container_width=True):
+                # Önce dosyayı kaydet
+                try:
+                    save_path = DATA_RAW_DIR / uploaded_file.name
+                    DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
+                    
+                    with open(save_path, "wb") as f:
+                        f.write(uploaded_file.getvalue())
+                    
+                    # Sonra işle
+                    with st.spinner("Veriler işleniyor..."):
+                        result = process_daily_data(str(save_path))
+                        if result.returncode == 0:
+                            st.success("✅ Veri işleme başarılı!")
+                            st.balloons()
+                            st.info("🎉 Analiz sayfasına gidebilirsiniz!")
+                        else:
+                            st.error("❌ Veri işleme hatası:")
+                            st.code(result.stderr)
+                            
+                except Exception as e:
+                    st.error(f"❌ İşlem hatası: {e}")
+    
+    st.markdown("---")
     
     st.markdown("### 🚀 Özellikler")
     col1, col2 = st.columns(2)
