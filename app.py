@@ -329,10 +329,37 @@ def process_daily_data(file_path):
         if not file_path.exists():
             raise FileNotFoundError(f"Dosya bulunamadı: {file_path}")
         
-        # ANA SİSTEMİ ÇALIŞTIR: python main.py --process-daily dosya_yolu
+        # ANA SİSTEMİ ÇALIŞTIR: python main.py --gunluk-islem dosya_yolu
         try:
-            command = ["python", "main.py", "--gunluk-islem", str(file_path)]
+            import subprocess
+            import sys
+            
+            # Tam python path kullan (Streamlit Cloud uyumluluğu)
+            python_path = sys.executable
+            command = [python_path, "main.py", "--gunluk-islem", str(file_path)]
             result = run_command(command)
+            
+            # DEBUG: gerçek çıktıyı göster
+            if result.returncode != 0:
+                # Hata durumunda gerçek çıktıyı döndür
+                class DebugResult:
+                    def __init__(self, stdout, stderr, returncode):
+                        self.returncode = returncode
+                        self.stdout = f"""❌ DEBUG: Ana sistem çalışmadı!
+
+🔧 Komut: {' '.join(command)}
+📊 Return code: {returncode}
+
+📝 STDOUT:
+{stdout}
+
+❌ STDERR:  
+{stderr}
+
+💡 Fallback sisteme geçiliyor..."""
+                        self.stderr = stderr
+                
+                return DebugResult(result.stdout, result.stderr, result.returncode)
             
             if result.returncode == 0:
                 # ANA SİSTEM BAŞARILI - Tüm analizler tamamlandı
