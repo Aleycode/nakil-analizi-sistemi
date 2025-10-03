@@ -567,8 +567,13 @@ def process_simple_excel_fallback(file_path, reason="Ana sistem kullanılamıyor
         
         # Multi-engine Excel okuma
         df = None
-        # Hem .xls hem de .xlsx dosyaları için openpyxl kullan
-        df = pd.read_excel(file_path, engine='openpyxl')
+        try:
+            df = pd.read_excel(file_path, engine='openpyxl')
+        except:
+            try:
+                df = pd.read_excel(file_path, engine='xlrd')
+            except:
+                df = pd.read_excel(file_path)
         
         if df.empty:
             raise ValueError("Excel dosyası boş")
