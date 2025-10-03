@@ -318,7 +318,7 @@ def run_command(command):
 
 
 def process_daily_data(file_path):
-    """TAM NAKİL ANALİZ SİSTEMİ - 4 gün önceki tüm özellikler"""
+    """Günlük veri işleme - Streamlit Cloud uyumlu SADECE Excel okuma"""
     try:
         import pandas as pd
         from pathlib import Path
@@ -328,114 +328,62 @@ def process_daily_data(file_path):
         if not file_path.exists():
             raise FileNotFoundError(f"Dosya bulunamadı: {file_path}")
         
-        # ANA SİSTEMİ ÇALIŞTIR: python main.py --process-daily dosya_yolu
+        # Excel dosyasını okumayı dene
         try:
-            command = ["python", "main.py", "--process-daily", str(file_path)]
-            result = run_command(command)
-            
-            if result.returncode == 0:
-                # ANA SİSTEM BAŞARILI - Tüm analizler tamamlandı
-                class SuccessResult:
-                    def __init__(self):
-                        self.returncode = 0  
-                        self.stdout = f"""🎉 NAKİL ANALİZİ TAMAMLANDI! (4 gün önceki sistem)
-
-✅ Excel dosyası işlendi: {file_path.name}
-📊 Veri parquet formatına dönüştürüldü
-🔍 Nakil vaka analizleri yapıldı:
-  • Bekleme süreleri hesaplandı
-  • Bölgesel dağılım analiz edildi  
-  • Vaka tipleri kategorize edildi
-  • İstatistiksel analizler tamamlandı
-
-📈 Otomatik grafikler oluşturuldu:
-  • Bekleme süresi grafikleri
-  • Bölge bazlı dağılım grafikleri
-  • Vaka tipi analizleri
-  • Trend analizleri
-
-📄 PDF raporu oluşturuldu
-📋 JSON verileri kaydedildi
-
-🚀 TÜM ANALİZLER BAŞARIYLA TAMAMLANDI!
-💡 Artık 'Nakil Analizi' ve 'Rapor Arşivi' sayfalarını kullanabilirsiniz."""
-                        self.stderr = ""
-                
-                return SuccessResult()
+            # .xls dosyaları için xlrd engine
+            if file_path.suffix.lower() == '.xls':
+                df = pd.read_excel(file_path, engine='xlrd')
             else:
-                # Ana sistem başarısız - FALLBACK: Basit Excel okuma
-                return process_simple_excel_fallback(file_path, "Ana analiz sistemi çalışmadı")
-                
-        except Exception as main_error:
-            # Ana sistem hatası - FALLBACK: Basit Excel okuma  
-            return process_simple_excel_fallback(file_path, f"Ana sistem hatası: {main_error}")
+                # .xlsx dosyaları için openpyxl engine  
+                df = pd.read_excel(file_path, engine='openpyxl')
+            
+            # Basit veri kontrolü
+            if df.empty:
+                raise ValueError("Excel dosyası boş")
+            
+            # Veri temizleme
+            df = df.dropna(how='all')
+            
+            # Parquet klasörü oluştur
+            processed_dir = ROOT_DIR / "data" / "processed"
+            processed_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Parquet formatında kaydet
+            output_file = processed_dir / f"processed_{file_path.stem}.parquet"
+            df.to_parquet(output_file, index=False)
+            
+            # Başarılı sonuç oluştur
+            class SuccessResult:
+                def __init__(self, row_count, col_count):
+                    self.returncode = 0
+                    self.stdout = f"""✅ Dosya başarıyla işlendi: {file_path.name}
+📊 {row_count:,} satır veri okundu
+📋 {col_count} sütun bulundu  
+� Parquet formatında kaydedildi
+�📅 Analiz için hazır!
+
+💡 Şimdi Nakil Analizi sayfasına gidebilirsiniz"""
+                    self.stderr = ""
+            
+            return SuccessResult(len(df), len(df.columns))
+            
+        except Exception as excel_error:
+            raise ValueError(f"Excel okuma hatası: {excel_error}")
             
     except Exception as e:
-        # Genel hata
+        # Hata durumunda
         class ErrorResult:
             def __init__(self, error_msg):
                 self.returncode = 1
                 self.stdout = ""
                 self.stderr = f"""❌ İşlem hatası: {str(error_msg)}
 
-💡 Sorun giderme:
-• Dosyanın Excel formatında (.xls/.xlsx) olduğunu kontrol edin
+� Olası çözümler:
+• Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
 • Dosyanın bozuk olmadığını doğrulayın  
-• Sistem yükü yüksek olabilir - biraz bekleyip tekrar deneyin"""
+• Excel dosyasının içinde veri olduğundan emin olun
+• Farklı bir Excel dosyası deneyin"""
         
-        return ErrorResult(str(e))
-    
-def process_simple_excel_fallback(file_path, reason="Ana sistem kullanılamıyor"):
-    """FALLBACK: Basit Excel okuma (ana sistem çalışmazsa)"""
-    try:
-        import pandas as pd
-        from pathlib import Path
-        
-        # Multi-engine Excel okuma
-        df = None
-        try:
-            df = pd.read_excel(file_path, engine='openpyxl')
-        except:
-            try:
-                df = pd.read_excel(file_path, engine='xlrd')
-            except:
-                df = pd.read_excel(file_path)
-        
-        if df.empty:
-            raise ValueError("Excel dosyası boş")
-        
-        df = df.dropna(how='all')
-        
-        # Parquet kaydetme
-        processed_dir = ROOT_DIR / "data" / "processed"
-        processed_dir.mkdir(parents=True, exist_ok=True)
-        output_file = processed_dir / f"processed_{Path(file_path).stem}.parquet"
-        df.to_parquet(output_file, index=False)
-        
-        class SuccessResult:
-            def __init__(self):
-                self.returncode = 0
-                self.stdout = f"""⚠️ FALLBACK MOD: {reason}
-
-✅ Temel Excel işleme tamamlandı:
-📊 {len(df):,} satır veri okundu
-📋 {len(df.columns)} sütun bulundu
-💾 Parquet formatında kaydedildi
-
-⚡ Tam analiz için:
-1. 'Nakil Analizi' sayfasına gidin
-2. Manual analiz başlatın
-3. Veya ana sistemi debug edin"""
-                self.stderr = ""
-        
-        return SuccessResult()
-        
-    except Exception as e:
-        class ErrorResult:
-            def __init__(self, error_msg):
-                self.returncode = 1
-                self.stdout = ""
-                self.stderr = f"❌ Fallback Excel okuma hatası: {error_msg}"
         return ErrorResult(str(e))
 
 
@@ -1187,38 +1135,35 @@ def main():
         """, unsafe_allow_html=True)
         st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
     
-    # Her sayfada hızlı erişim menüsü (sidebar alternatifi)
-    st.markdown("### 🚀 Hızlı Erişim Menüsü")
-    st.info("💡 Sol taraftaki menüyü görmüyorsanız, aşağıdaki butonları kullanabilirsiniz!")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        # Ana sayfa butonu - aktif sayfa ise farklı renk
-        button_type = "primary" if st.session_state.get("page", "ana_sayfa") == "ana_sayfa" else "secondary"
-        if st.button("🏠 Ana Sayfa", use_container_width=True, type=button_type, key="nav_ana"):
-            st.session_state.page = "ana_sayfa"
-            st.rerun()
-            
-    with col2:
-        button_type = "primary" if st.session_state.get("page") == "veri_isleme" else "secondary"
-        if st.button("📥 Veri İşleme", use_container_width=True, type=button_type, key="nav_veri"):
-            st.session_state.page = "veri_isleme"
-            st.rerun()
-            
-    with col3:
-        button_type = "primary" if st.session_state.get("page") == "analiz" else "secondary"
-        if st.button("📊 Nakil Analizi", use_container_width=True, type=button_type, key="nav_analiz"):
-            st.session_state.page = "analiz"
-            st.rerun()
-            
-    with col4:
-        button_type = "primary" if st.session_state.get("page") == "rapor" else "secondary"
-        if st.button("📄 Rapor Arşivi", use_container_width=True, type=button_type, key="nav_rapor"):
-            st.session_state.page = "rapor"
-            st.rerun()
-    
-    st.markdown("---")
+    # Ana sayfada alternatif menü (sidebar görünmüyorsa)
+    if st.session_state.get("page", "ana_sayfa") == "ana_sayfa":
+        # Ana sayfa içeriğinden önce hızlı menü
+        st.markdown("### 🚀 Hızlı Erişim Menüsü")
+        st.info("💡 Sol taraftaki menüyü görmüyorsanız, aşağıdaki butonları kullanabilirsiniz!")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            if st.button("🏠 Ana Sayfa", use_container_width=True, type="primary"):
+                st.session_state.page = "ana_sayfa"
+                st.rerun()
+                
+        with col2:
+            if st.button("📥 Veri İşleme", use_container_width=True):
+                st.session_state.page = "veri_isleme"
+                st.rerun()
+                
+        with col3:
+            if st.button("📊 Nakil Analizi", use_container_width=True):
+                st.session_state.page = "analiz"
+                st.rerun()
+                
+        with col4:
+            if st.button("📄 Rapor Arşivi", use_container_width=True):
+                st.session_state.page = "rapor"
+                st.rerun()
+        
+        st.markdown("---")
     
     # Ana içerik
     if st.session_state.get("page") == "veri_isleme":

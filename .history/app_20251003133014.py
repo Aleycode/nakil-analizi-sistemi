@@ -328,68 +328,76 @@ def process_daily_data(file_path):
         if not file_path.exists():
             raise FileNotFoundError(f"Dosya bulunamadı: {file_path}")
         
-        # ANA SİSTEMİ ÇALIŞTIR: python main.py --process-daily dosya_yolu
+        # Excel dosyasını okumayı dene - engine problemi çöz
         try:
-            command = ["python", "main.py", "--process-daily", str(file_path)]
-            result = run_command(command)
+            # Farklı engine'leri sırayla dene
+            df = None
             
-            if result.returncode == 0:
-                # ANA SİSTEM BAŞARILI - Tüm analizler tamamlandı
-                class SuccessResult:
-                    def __init__(self):
-                        self.returncode = 0  
-                        self.stdout = f"""🎉 NAKİL ANALİZİ TAMAMLANDI! (4 gün önceki sistem)
+            # Önce openpyxl ile dene (çoğu durumda çalışır)
+            try:
+                df = pd.read_excel(file_path, engine='openpyxl')
+            except:
+                # openpyxl başarısız olursa xlrd dene
+                try:
+                    df = pd.read_excel(file_path, engine='xlrd')
+                except:
+                    # Son çare: engine belirtmeden
+                    df = pd.read_excel(file_path)
+            
+            # Basit veri kontrolü
+            if df.empty:
+                raise ValueError("Excel dosyası boş")
+            
+            # Veri temizleme
+            df = df.dropna(how='all')
+            
+            # Parquet klasörü oluştur
+            processed_dir = ROOT_DIR / "data" / "processed"
+            processed_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Parquet formatında kaydet
+            output_file = processed_dir / f"processed_{file_path.stem}.parquet"
+            df.to_parquet(output_file, index=False)
+            
+            # Başarılı sonuç oluştur
+            class SuccessResult:
+                def __init__(self, row_count, col_count):
+                    self.returncode = 0
+                    self.stdout = f"""✅ Dosya başarıyla işlendi: {file_path.name}
+📊 {row_count:,} satır veri okundu
+📋 {col_count} sütun bulundu  
+� Parquet formatında kaydedildi
+�📅 Analiz için hazır!
 
-✅ Excel dosyası işlendi: {file_path.name}
-📊 Veri parquet formatına dönüştürüldü
-🔍 Nakil vaka analizleri yapıldı:
-  • Bekleme süreleri hesaplandı
-  • Bölgesel dağılım analiz edildi  
-  • Vaka tipleri kategorize edildi
-  • İstatistiksel analizler tamamlandı
-
-📈 Otomatik grafikler oluşturuldu:
-  • Bekleme süresi grafikleri
-  • Bölge bazlı dağılım grafikleri
-  • Vaka tipi analizleri
-  • Trend analizleri
-
-📄 PDF raporu oluşturuldu
-📋 JSON verileri kaydedildi
-
-🚀 TÜM ANALİZLER BAŞARIYLA TAMAMLANDI!
-💡 Artık 'Nakil Analizi' ve 'Rapor Arşivi' sayfalarını kullanabilirsiniz."""
-                        self.stderr = ""
-                
-                return SuccessResult()
-            else:
-                # Ana sistem başarısız - FALLBACK: Basit Excel okuma
-                return process_simple_excel_fallback(file_path, "Ana analiz sistemi çalışmadı")
-                
-        except Exception as main_error:
-            # Ana sistem hatası - FALLBACK: Basit Excel okuma  
-            return process_simple_excel_fallback(file_path, f"Ana sistem hatası: {main_error}")
+💡 Şimdi Nakil Analizi sayfasına gidebilirsiniz"""
+                    self.stderr = ""
+            
+            return SuccessResult(len(df), len(df.columns))
+            
+        except Exception as excel_error:
+            raise ValueError(f"Excel okuma hatası: {excel_error}")
             
     except Exception as e:
-        # Genel hata
+        # Hata durumunda
         class ErrorResult:
             def __init__(self, error_msg):
                 self.returncode = 1
                 self.stdout = ""
                 self.stderr = f"""❌ İşlem hatası: {str(error_msg)}
 
-💡 Sorun giderme:
-• Dosyanın Excel formatında (.xls/.xlsx) olduğunu kontrol edin
+� Olası çözümler:
+• Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
 • Dosyanın bozuk olmadığını doğrulayın  
-• Sistem yükü yüksek olabilir - biraz bekleyip tekrar deneyin"""
+• Excel dosyasının içinde veri olduğundan emin olun
+• Farklı bir Excel dosyası deneyin"""
         
         return ErrorResult(str(e))
-    
+
+
 def process_simple_excel_fallback(file_path, reason="Ana sistem kullanılamıyor"):
     """FALLBACK: Basit Excel okuma (ana sistem çalışmazsa)"""
     try:
         import pandas as pd
-        from pathlib import Path
         
         # Multi-engine Excel okuma
         df = None

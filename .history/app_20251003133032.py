@@ -385,11 +385,62 @@ def process_daily_data(file_path):
         
         return ErrorResult(str(e))
     
+    # ESKI KOD BURAYA KADAR
+            
+            # Basit veri kontrolü
+            if df.empty:
+                raise ValueError("Excel dosyası boş")
+            
+            # Veri temizleme
+            df = df.dropna(how='all')
+            
+            # Parquet klasörü oluştur
+            processed_dir = ROOT_DIR / "data" / "processed"
+            processed_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Parquet formatında kaydet
+            output_file = processed_dir / f"processed_{file_path.stem}.parquet"
+            df.to_parquet(output_file, index=False)
+            
+            # Başarılı sonuç oluştur
+            class SuccessResult:
+                def __init__(self, row_count, col_count):
+                    self.returncode = 0
+                    self.stdout = f"""✅ Dosya başarıyla işlendi: {file_path.name}
+📊 {row_count:,} satır veri okundu
+📋 {col_count} sütun bulundu  
+� Parquet formatında kaydedildi
+�📅 Analiz için hazır!
+
+💡 Şimdi Nakil Analizi sayfasına gidebilirsiniz"""
+                    self.stderr = ""
+            
+            return SuccessResult(len(df), len(df.columns))
+            
+        except Exception as excel_error:
+            raise ValueError(f"Excel okuma hatası: {excel_error}")
+            
+    except Exception as e:
+        # Hata durumunda
+        class ErrorResult:
+            def __init__(self, error_msg):
+                self.returncode = 1
+                self.stdout = ""
+                self.stderr = f"""❌ İşlem hatası: {str(error_msg)}
+
+� Olası çözümler:
+• Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
+• Dosyanın bozuk olmadığını doğrulayın  
+• Excel dosyasının içinde veri olduğundan emin olun
+• Farklı bir Excel dosyası deneyin"""
+        
+        return ErrorResult(str(e))
+
+
 def process_simple_excel_fallback(file_path, reason="Ana sistem kullanılamıyor"):
     """FALLBACK: Basit Excel okuma (ana sistem çalışmazsa)"""
     try:
         import pandas as pd
-        from pathlib import Path
         
         # Multi-engine Excel okuma
         df = None

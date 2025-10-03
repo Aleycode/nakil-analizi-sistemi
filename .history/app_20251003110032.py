@@ -51,11 +51,7 @@ def configure_page():
         page_icon="📊",
         layout="wide",
         initial_sidebar_state="expanded",
-        menu_items={
-            'Get Help': 'https://github.com/Aleycode/nakil-analizi-sistemi',
-            'Report a bug': 'https://github.com/Aleycode/nakil-analizi-sistemi/issues',
-            'About': "Nakil Z Raporu Analiz Sistemi v1.0"
-        }
+        menu_items=None
     )
     
     # Streamlit stil düzenlemeleri
@@ -69,59 +65,6 @@ def configure_page():
     .stApp > header {display: none;}
     .css-1rs6os {display: none;}
     .css-17ziqus {display: none;}
-    
-    /* Sidebar'ı zorunlu görünür yap - tüm sınıflar */
-    .css-1d391kg, .css-1lcbmhc, .css-17lntkn, .css-1y4p8pa, .sidebar .sidebar-content {
-        width: 320px !important;
-        min-width: 320px !important;
-        max-width: 320px !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-    
-    /* Streamlit yeni sürüm sidebar sınıfları */
-    [data-testid="stSidebar"] {
-        width: 320px !important;
-        min-width: 320px !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-    
-    [data-testid="stSidebar"] > div {
-        width: 320px !important;
-        min-width: 320px !important;
-        display: block !important;
-        visibility: visible !important;
-    }
-    
-    /* Sidebar toggle butonunu vurgula */
-    .css-vk3wp9, [data-testid="collapsedControl"] {
-        background-color: #ff4b4b !important;
-        color: white !important;
-        border-radius: 50% !important;
-        width: 50px !important;
-        height: 50px !important;
-        border: 3px solid #ff6b6b !important;
-        box-shadow: 0 0 10px rgba(255, 75, 75, 0.5) !important;
-    }
-    
-    /* Ana içerik alanını ayarla */
-    .main .block-container {
-        margin-left: 340px !important;
-        max-width: calc(100% - 360px) !important;
-    }
-    
-    /* Mobile responsive */
-    @media (max-width: 768px) {
-        .css-1d391kg, .css-1lcbmhc, [data-testid="stSidebar"] {
-            width: 280px !important;
-            min-width: 280px !important;
-        }
-        .main .block-container {
-            margin-left: 300px !important;
-            max-width: calc(100% - 320px) !important;
-        }
-    }
     </style>
     """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -318,125 +261,9 @@ def run_command(command):
 
 
 def process_daily_data(file_path):
-    """TAM NAKİL ANALİZ SİSTEMİ - 4 gün önceki tüm özellikler"""
-    try:
-        import pandas as pd
-        from pathlib import Path
-        
-        # Dosya yolu kontrolü
-        file_path = Path(file_path)
-        if not file_path.exists():
-            raise FileNotFoundError(f"Dosya bulunamadı: {file_path}")
-        
-        # ANA SİSTEMİ ÇALIŞTIR: python main.py --process-daily dosya_yolu
-        try:
-            command = ["python", "main.py", "--process-daily", str(file_path)]
-            result = run_command(command)
-            
-            if result.returncode == 0:
-                # ANA SİSTEM BAŞARILI - Tüm analizler tamamlandı
-                class SuccessResult:
-                    def __init__(self):
-                        self.returncode = 0  
-                        self.stdout = f"""🎉 NAKİL ANALİZİ TAMAMLANDI! (4 gün önceki sistem)
-
-✅ Excel dosyası işlendi: {file_path.name}
-📊 Veri parquet formatına dönüştürüldü
-🔍 Nakil vaka analizleri yapıldı:
-  • Bekleme süreleri hesaplandı
-  • Bölgesel dağılım analiz edildi  
-  • Vaka tipleri kategorize edildi
-  • İstatistiksel analizler tamamlandı
-
-📈 Otomatik grafikler oluşturuldu:
-  • Bekleme süresi grafikleri
-  • Bölge bazlı dağılım grafikleri
-  • Vaka tipi analizleri
-  • Trend analizleri
-
-📄 PDF raporu oluşturuldu
-📋 JSON verileri kaydedildi
-
-🚀 TÜM ANALİZLER BAŞARIYLA TAMAMLANDI!
-💡 Artık 'Nakil Analizi' ve 'Rapor Arşivi' sayfalarını kullanabilirsiniz."""
-                        self.stderr = ""
-                
-                return SuccessResult()
-            else:
-                # Ana sistem başarısız - FALLBACK: Basit Excel okuma
-                return process_simple_excel_fallback(file_path, "Ana analiz sistemi çalışmadı")
-                
-        except Exception as main_error:
-            # Ana sistem hatası - FALLBACK: Basit Excel okuma  
-            return process_simple_excel_fallback(file_path, f"Ana sistem hatası: {main_error}")
-            
-    except Exception as e:
-        # Genel hata
-        class ErrorResult:
-            def __init__(self, error_msg):
-                self.returncode = 1
-                self.stdout = ""
-                self.stderr = f"""❌ İşlem hatası: {str(error_msg)}
-
-💡 Sorun giderme:
-• Dosyanın Excel formatında (.xls/.xlsx) olduğunu kontrol edin
-• Dosyanın bozuk olmadığını doğrulayın  
-• Sistem yükü yüksek olabilir - biraz bekleyip tekrar deneyin"""
-        
-        return ErrorResult(str(e))
-    
-def process_simple_excel_fallback(file_path, reason="Ana sistem kullanılamıyor"):
-    """FALLBACK: Basit Excel okuma (ana sistem çalışmazsa)"""
-    try:
-        import pandas as pd
-        from pathlib import Path
-        
-        # Multi-engine Excel okuma
-        df = None
-        try:
-            df = pd.read_excel(file_path, engine='openpyxl')
-        except:
-            try:
-                df = pd.read_excel(file_path, engine='xlrd')
-            except:
-                df = pd.read_excel(file_path)
-        
-        if df.empty:
-            raise ValueError("Excel dosyası boş")
-        
-        df = df.dropna(how='all')
-        
-        # Parquet kaydetme
-        processed_dir = ROOT_DIR / "data" / "processed"
-        processed_dir.mkdir(parents=True, exist_ok=True)
-        output_file = processed_dir / f"processed_{Path(file_path).stem}.parquet"
-        df.to_parquet(output_file, index=False)
-        
-        class SuccessResult:
-            def __init__(self):
-                self.returncode = 0
-                self.stdout = f"""⚠️ FALLBACK MOD: {reason}
-
-✅ Temel Excel işleme tamamlandı:
-📊 {len(df):,} satır veri okundu
-📋 {len(df.columns)} sütun bulundu
-💾 Parquet formatında kaydedildi
-
-⚡ Tam analiz için:
-1. 'Nakil Analizi' sayfasına gidin
-2. Manual analiz başlatın
-3. Veya ana sistemi debug edin"""
-                self.stderr = ""
-        
-        return SuccessResult()
-        
-    except Exception as e:
-        class ErrorResult:
-            def __init__(self, error_msg):
-                self.returncode = 1
-                self.stdout = ""
-                self.stderr = f"❌ Fallback Excel okuma hatası: {error_msg}"
-        return ErrorResult(str(e))
+    """Günlük veri işleme komutu çalıştır"""
+    command = ["python", "main.py", "--gunluk-islem", str(file_path)]
+    return run_command(command)
 
 
 def run_analysis(date):
@@ -607,37 +434,15 @@ def veri_isleme_sayfasi():
                 st.caption(f"Toplam {len(df)} satır veri")
                 
                 # İşleme butonu
-                if st.button("Dosyayı İşle", type="primary", use_container_width=True):
-                    with st.spinner("🔄 Veriler işleniyor... Lütfen bekleyin"):
+                if st.button("Dosyayı İşle"):
+                    with st.spinner("Veriler işleniyor..."):
                         result = process_daily_data(str(file_path))
                         if result.returncode == 0:
-                            st.success("🎉 Veri işleme başarılı!")
-                            st.info(result.stdout)
-                            st.balloons()
-                            
-                            # İleriye yönlendirme butonları
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button("📊 Analiz Sayfasına Git", use_container_width=True):
-                                    st.session_state.page = "analiz"
-                                    st.rerun()
-                            with col2:
-                                if st.button("🏠 Ana Sayfaya Dön", use_container_width=True):
-                                    st.session_state.page = "ana_sayfa"
-                                    st.rerun()
+                            st.success("✅ Veri işleme başarılı!")
+                            st.code(result.stdout)
                         else:
                             st.error("❌ Veri işleme hatası:")
                             st.code(result.stderr)
-                            
-                            # Hata durumunda yardım
-                            with st.expander("🆘 Sorun giderme önerileri"):
-                                st.markdown("""
-                                **Olası çözümler:**
-                                - Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
-                                - Dosyanın bozuk olmadığını doğrulayın
-                                - Farklı bir Excel dosyası deneyin
-                                - Ana sayfadan "Hemen İşle" butonunu kullanmayı deneyin
-                                """)
             except Exception as e:
                 st.error(f"❌ Dosya okuma hatası: {e}")
         
@@ -766,44 +571,8 @@ def rapor_sayfasi():
     
     # Mevcut tarihleri kontrol et
     dates = get_existing_dates()
-    
     if not dates:
         st.warning("⚠️ Henüz oluşturulmuş rapor bulunamadı.")
-        st.info("📝 Rapor oluşturmak için:")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("""
-            **1️⃣ Veri Yükleme**
-            - Ana sayfadan Excel dosyası yükleyin
-            - "Hemen İşle" butonuna tıklayın
-            """)
-        with col2:
-            st.markdown("""
-            **2️⃣ Analiz Çalıştırma**  
-            - Nakil Analizi sayfasına gidin
-            - Tarihi seçip analiz çalıştırın
-            """)
-        
-        # Hızlı erişim butonları
-        st.markdown("### 🚀 Hızlı İşlemler")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            if st.button("📥 Veri Yükle", use_container_width=True):
-                st.session_state.page = "ana_sayfa"  
-                st.rerun()
-        
-        with col2:
-            if st.button("📊 Nakil Analizi", use_container_width=True):
-                st.session_state.page = "analiz"
-                st.rerun()
-                
-        with col3:
-            if st.button("📋 Veri İşleme", use_container_width=True):
-                st.session_state.page = "veri_isleme"
-                st.rerun()
-        
         return
     
     # Tarih filtresi
@@ -969,35 +738,15 @@ def ana_sayfa():
                         f.write(uploaded_file.getvalue())
                     
                     # Sonra işle
-                    with st.spinner("🔄 Veriler işleniyor... Lütfen bekleyin"):
+                    with st.spinner("Veriler işleniyor..."):
                         result = process_daily_data(str(save_path))
                         if result.returncode == 0:
-                            st.success("🎉 Veri işleme başarılı!")
-                            st.info(result.stdout)
+                            st.success("✅ Veri işleme başarılı!")
                             st.balloons()
-                            
-                            # İleriye yönlendirme butonları
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button("📊 Analiz Yap", use_container_width=True, key="main_to_analysis"):
-                                    st.session_state.page = "analiz"
-                                    st.rerun()
-                            with col2:
-                                if st.button("📄 Raporları Gör", use_container_width=True, key="main_to_reports"):
-                                    st.session_state.page = "rapor"
-                                    st.rerun()
+                            st.info("🎉 Analiz sayfasına gidebilirsiniz!")
                         else:
                             st.error("❌ Veri işleme hatası:")
                             st.code(result.stderr)
-                            
-                            # Hata durumunda yardım
-                            with st.expander("🆘 Sorun giderme önerileri"):
-                                st.markdown("""
-                                **Olası çözümler:**
-                                - Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
-                                - Dosyanın bozuk olmadığını doğrulayın
-                                - Veri İşleme sayfasından farklı bir dosya deneyin
-                                """)
                             
                 except Exception as e:
                     st.error(f"❌ İşlem hatası: {e}")
@@ -1154,25 +903,19 @@ def main():
     """Ana fonksiyon"""
     configure_page()
     
-    # Sidebar kontrolü - eğer görünmüyorsa ana sayfada menü göster
-    sidebar_visible = True
-    
     # Sidebar menüsü
     with st.sidebar:
-        st.markdown("""
-        <div style="background-color: #1E88E5; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-            <h2 style="margin: 0; color: white;">🏥 NAKİL ANALİZ SİSTEMİ</h2>
-        </div>
-        """, unsafe_allow_html=True)
+        st.title("Nakil Analiz Sistemi")
+        st.markdown("---")
         
         menu_options = {
             "ana_sayfa": "🏠 Ana Sayfa",
-            "veri_isleme": "📥 Excel Veri İşleme", 
+            "veri_isleme": "📥 Excel Veri İşleme",
             "analiz": "📊 Nakil Analizi",
             "rapor": "📄 Rapor Arşivi",
         }
         
-        selected_page = st.radio("📋 Menü Seçimi:", list(menu_options.values()), key="sidebar_menu")
+        selected_page = st.radio("Menü:", list(menu_options.values()))
         
         # Sayfa seçimini state'e kaydet
         for key, value in menu_options.items():
@@ -1180,45 +923,7 @@ def main():
                 st.session_state.page = key
         
         st.markdown("---")
-        st.markdown("""
-        <div style="text-align: center; padding: 10px; background-color: #f0f8ff; border-radius: 5px;">
-            <small>💡 <strong>İpucu:</strong> Sol menüyü görmüyorsanız sayfa üstündeki ◀ ok işaretine tıklayın</small>
-        </div>
-        """, unsafe_allow_html=True)
-        st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
-    
-    # Her sayfada hızlı erişim menüsü (sidebar alternatifi)
-    st.markdown("### 🚀 Hızlı Erişim Menüsü")
-    st.info("💡 Sol taraftaki menüyü görmüyorsanız, aşağıdaki butonları kullanabilirsiniz!")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        # Ana sayfa butonu - aktif sayfa ise farklı renk
-        button_type = "primary" if st.session_state.get("page", "ana_sayfa") == "ana_sayfa" else "secondary"
-        if st.button("🏠 Ana Sayfa", use_container_width=True, type=button_type, key="nav_ana"):
-            st.session_state.page = "ana_sayfa"
-            st.rerun()
-            
-    with col2:
-        button_type = "primary" if st.session_state.get("page") == "veri_isleme" else "secondary"
-        if st.button("📥 Veri İşleme", use_container_width=True, type=button_type, key="nav_veri"):
-            st.session_state.page = "veri_isleme"
-            st.rerun()
-            
-    with col3:
-        button_type = "primary" if st.session_state.get("page") == "analiz" else "secondary"
-        if st.button("📊 Nakil Analizi", use_container_width=True, type=button_type, key="nav_analiz"):
-            st.session_state.page = "analiz"
-            st.rerun()
-            
-    with col4:
-        button_type = "primary" if st.session_state.get("page") == "rapor" else "secondary"
-        if st.button("📄 Rapor Arşivi", use_container_width=True, type=button_type, key="nav_rapor"):
-            st.session_state.page = "rapor"
-            st.rerun()
-    
-    st.markdown("---")
+        st.caption("Nakil Z Raporu Analiz Sistemi © 2025")
     
     # Ana içerik
     if st.session_state.get("page") == "veri_isleme":
