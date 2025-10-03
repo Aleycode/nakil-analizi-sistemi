@@ -126,8 +126,8 @@ def configure_page():
     """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
     
-    # Gece modu kontrolü
-    dark_mode = st.session_state.get("dark_mode", False)
+    # Gece modu kontrolü - varsayılan olarak açık
+    dark_mode = True
     
     # Dinamik CSS - Gece/Gündüz modu
     if dark_mode:
@@ -1186,16 +1186,8 @@ def main():
     
     # Sidebar menüsü
     with st.sidebar:
-        st.markdown("""
-        <div style="background-color: #1E88E5; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-            <h2 style="margin: 0; color: white;">🏥 NAKİL ANALİZ SİSTEMİ</h2>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("# 🏥 NAKİL ANALİZ SİSTEMİ")
         
-        # Gece modu toggle
-        st.markdown("---")
-        dark_mode = st.toggle("🌙 Gece Modu", value=st.session_state.get("dark_mode", False))
-        st.session_state.dark_mode = dark_mode
         st.markdown("---")
         
         menu_options = {
@@ -1213,11 +1205,6 @@ def main():
                 st.session_state.page = key
         
         st.markdown("---")
-        st.markdown("""
-        <div style="text-align: center; padding: 10px; background-color: #f0f8ff; border-radius: 5px;">
-            <small>💡 <strong>İpucu:</strong> Sol menüyü görmüyorsanız sayfa üstündeki ◀ ok işaretine tıklayın</small>
-        </div>
-        """, unsafe_allow_html=True)
         st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
     
     # Her sayfada hızlı erişim menüsü (sidebar alternatifi)
