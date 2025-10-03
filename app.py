@@ -229,19 +229,21 @@ def configure_page():
         }
         """
     
-    # Özel CSS
-    st.markdown(
-        f"""
+    # Özel CSS - f-string hatası için normal string kullan
+    css_content = f"""
         <style>
         {theme_css}
         
-        .pdf-button {
+        .pdf-button {{
             background-color: #ff6b6b;
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 0.3rem;
             text-decoration: none;
-        }
+        }}"""
+    
+    # CSS'in geri kalanını normal string olarak ekle
+    css_rest = """
         .footer {
             position: fixed;
             right: 15px;
@@ -330,11 +332,12 @@ def configure_page():
             visibility: hidden;
         }
         </style>
-        """,
-        unsafe_allow_html=True,
-    )
+        """
     
-    # Footer ekle - CSS animasyonu ile
+    # CSS'i birleştir ve ekle  
+    st.markdown(css_content + css_rest, unsafe_allow_html=True)
+    
+    # Footer ekle
     st.markdown(
         """
         <div class="footer footer-animated">
