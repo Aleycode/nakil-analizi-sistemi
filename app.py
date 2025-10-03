@@ -1061,27 +1061,8 @@ def ana_sayfa():
         st.success(f"✅ Dosya yüklendi: **{uploaded_file.name}**")
         st.info(f"📊 Dosya boyutu: {uploaded_file.size / 1024:.1f} KB")
         
-        # Dosyayı kaydet ve işle
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("💾 Dosyayı Kaydet", type="primary", use_container_width=True):
-                try:
-                    # Dosyayı raw klasörüne kaydet
-                    save_path = DATA_RAW_DIR / uploaded_file.name
-                    DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
-                    
-                    with open(save_path, "wb") as f:
-                        f.write(uploaded_file.getvalue())
-                    
-                    st.session_state.uploaded_file_path = str(save_path)
-                    st.success(f"✅ Dosya kaydedildi: `{uploaded_file.name}`")
-                    
-                except Exception as e:
-                    st.error(f"❌ Dosya kaydetme hatası: {e}")
-        
-        with col2:
-            if st.button("⚡ Hemen İşle", type="secondary", use_container_width=True):
+        # Dosyayı işle
+        if st.button("⚡ Hemen İşle", type="primary", use_container_width=True):
                 # Önce dosyayı kaydet
                 try:
                     save_path = DATA_RAW_DIR / uploaded_file.name
