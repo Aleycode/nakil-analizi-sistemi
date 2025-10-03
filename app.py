@@ -1188,43 +1188,9 @@ def main():
         st.markdown("---")
         st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
     
-    # Ana içerik kontrol
+    # Ana içerik - sayfa yönlendirmeleri
     current_page = st.session_state.get("page", "ana_sayfa")
     
-    # Her sayfada hızlı erişim menüsü (sidebar alternatifi) 
-    st.markdown("### 🚀 Hızlı Erişim Menüsü")
-    st.info("💡 Sol taraftaki menüyü görmüyorsanız, aşağıdaki butonları kullanabilirsiniz!")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        # Ana sayfa butonu - aktif sayfa ise farklı renk
-        button_type = "primary" if current_page == "ana_sayfa" else "secondary"
-        if st.button("🏠 Ana Sayfa", use_container_width=True, type=button_type, key="nav_ana"):
-            st.session_state.page = "ana_sayfa"
-            st.rerun()
-            
-    with col2:
-        button_type = "primary" if current_page == "veri_isleme" else "secondary"
-        if st.button("📥 Veri İşleme", use_container_width=True, type=button_type, key="nav_veri"):
-            st.session_state.page = "veri_isleme"
-            st.rerun()
-            
-    with col3:
-        button_type = "primary" if current_page == "analiz" else "secondary"
-        if st.button("📊 Nakil Analizi", use_container_width=True, type=button_type, key="nav_analiz"):
-            st.session_state.page = "analiz"
-            st.rerun()
-            
-    with col4:
-        button_type = "primary" if current_page == "rapor" else "secondary"
-        if st.button("📄 Rapor Arşivi", use_container_width=True, type=button_type, key="nav_rapor"):
-            st.session_state.page = "rapor"
-            st.rerun()
-    
-    st.markdown("---")
-    
-    # Ana içerik - sayfa yönlendirmeleri
     if current_page == "veri_isleme":
         veri_isleme_sayfasi()
     elif current_page == "analiz":
