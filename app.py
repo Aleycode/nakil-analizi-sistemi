@@ -328,14 +328,21 @@ def process_daily_data(file_path):
         if not file_path.exists():
             raise FileNotFoundError(f"Dosya bulunamadı: {file_path}")
         
-        # Excel dosyasını okumayı dene
+        # Excel dosyasını okumayı dene - engine problemi çöz
         try:
-            # .xls dosyaları için xlrd engine
-            if file_path.suffix.lower() == '.xls':
-                df = pd.read_excel(file_path, engine='xlrd')
-            else:
-                # .xlsx dosyaları için openpyxl engine  
+            # Farklı engine'leri sırayla dene
+            df = None
+            
+            # Önce openpyxl ile dene (çoğu durumda çalışır)
+            try:
                 df = pd.read_excel(file_path, engine='openpyxl')
+            except:
+                # openpyxl başarısız olursa xlrd dene
+                try:
+                    df = pd.read_excel(file_path, engine='xlrd')
+                except:
+                    # Son çare: engine belirtmeden
+                    df = pd.read_excel(file_path)
             
             # Basit veri kontrolü
             if df.empty:
