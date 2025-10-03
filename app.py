@@ -51,7 +51,11 @@ def configure_page():
         page_icon="📊",
         layout="wide",
         initial_sidebar_state="expanded",
-        menu_items=None
+        menu_items={
+            'Get Help': 'https://github.com/Aleycode/nakil-analizi-sistemi',
+            'Report a bug': 'https://github.com/Aleycode/nakil-analizi-sistemi/issues',
+            'About': "Nakil Z Raporu Analiz Sistemi v1.0"
+        }
     )
     
     # Streamlit stil düzenlemeleri
@@ -65,6 +69,59 @@ def configure_page():
     .stApp > header {display: none;}
     .css-1rs6os {display: none;}
     .css-17ziqus {display: none;}
+    
+    /* Sidebar'ı zorunlu görünür yap - tüm sınıflar */
+    .css-1d391kg, .css-1lcbmhc, .css-17lntkn, .css-1y4p8pa, .sidebar .sidebar-content {
+        width: 320px !important;
+        min-width: 320px !important;
+        max-width: 320px !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    /* Streamlit yeni sürüm sidebar sınıfları */
+    [data-testid="stSidebar"] {
+        width: 320px !important;
+        min-width: 320px !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    [data-testid="stSidebar"] > div {
+        width: 320px !important;
+        min-width: 320px !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    /* Sidebar toggle butonunu vurgula */
+    .css-vk3wp9, [data-testid="collapsedControl"] {
+        background-color: #ff4b4b !important;
+        color: white !important;
+        border-radius: 50% !important;
+        width: 50px !important;
+        height: 50px !important;
+        border: 3px solid #ff6b6b !important;
+        box-shadow: 0 0 10px rgba(255, 75, 75, 0.5) !important;
+    }
+    
+    /* Ana içerik alanını ayarla */
+    .main .block-container {
+        margin-left: 340px !important;
+        max-width: calc(100% - 360px) !important;
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .css-1d391kg, .css-1lcbmhc, [data-testid="stSidebar"] {
+            width: 280px !important;
+            min-width: 280px !important;
+        }
+        .main .block-container {
+            margin-left: 300px !important;
+            max-width: calc(100% - 320px) !important;
+        }
+    }
     </style>
     """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -903,19 +960,25 @@ def main():
     """Ana fonksiyon"""
     configure_page()
     
+    # Sidebar kontrolü - eğer görünmüyorsa ana sayfada menü göster
+    sidebar_visible = True
+    
     # Sidebar menüsü
     with st.sidebar:
-        st.title("Nakil Analiz Sistemi")
-        st.markdown("---")
+        st.markdown("""
+        <div style="background-color: #1E88E5; color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; color: white;">🏥 NAKİL ANALİZ SİSTEMİ</h2>
+        </div>
+        """, unsafe_allow_html=True)
         
         menu_options = {
             "ana_sayfa": "🏠 Ana Sayfa",
-            "veri_isleme": "📥 Excel Veri İşleme",
+            "veri_isleme": "📥 Excel Veri İşleme", 
             "analiz": "📊 Nakil Analizi",
             "rapor": "📄 Rapor Arşivi",
         }
         
-        selected_page = st.radio("Menü:", list(menu_options.values()))
+        selected_page = st.radio("📋 Menü Seçimi:", list(menu_options.values()), key="sidebar_menu")
         
         # Sayfa seçimini state'e kaydet
         for key, value in menu_options.items():
@@ -923,7 +986,42 @@ def main():
                 st.session_state.page = key
         
         st.markdown("---")
-        st.caption("Nakil Z Raporu Analiz Sistemi © 2025")
+        st.markdown("""
+        <div style="text-align: center; padding: 10px; background-color: #f0f8ff; border-radius: 5px;">
+            <small>💡 <strong>İpucu:</strong> Sol menüyü görmüyorsanız sayfa üstündeki ◀ ok işaretine tıklayın</small>
+        </div>
+        """, unsafe_allow_html=True)
+        st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
+    
+    # Ana sayfada alternatif menü (sidebar görünmüyorsa)
+    if st.session_state.get("page", "ana_sayfa") == "ana_sayfa":
+        # Ana sayfa içeriğinden önce hızlı menü
+        st.markdown("### 🚀 Hızlı Erişim Menüsü")
+        st.info("💡 Sol taraftaki menüyü görmüyorsanız, aşağıdaki butonları kullanabilirsiniz!")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            if st.button("🏠 Ana Sayfa", use_container_width=True, type="primary"):
+                st.session_state.page = "ana_sayfa"
+                st.rerun()
+                
+        with col2:
+            if st.button("📥 Veri İşleme", use_container_width=True):
+                st.session_state.page = "veri_isleme"
+                st.rerun()
+                
+        with col3:
+            if st.button("📊 Nakil Analizi", use_container_width=True):
+                st.session_state.page = "analiz"
+                st.rerun()
+                
+        with col4:
+            if st.button("📄 Rapor Arşivi", use_container_width=True):
+                st.session_state.page = "rapor"
+                st.rerun()
+        
+        st.markdown("---")
     
     # Ana içerik
     if st.session_state.get("page") == "veri_isleme":
