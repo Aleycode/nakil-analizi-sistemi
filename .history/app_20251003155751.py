@@ -229,21 +229,19 @@ def configure_page():
         }
         """
     
-    # Özel CSS - f-string hatası için normal string kullan
-    css_content = f"""
+    # Özel CSS
+    st.markdown(
+        f"""
         <style>
         {theme_css}
         
-        .pdf-button {{
+        .pdf-button {
             background-color: #ff6b6b;
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 0.3rem;
             text-decoration: none;
-        }}"""
-    
-    # CSS'in geri kalanını normal string olarak ekle - keyframes CSS problemsiz
-    css_rest = '''
+        }
         .footer {
             position: fixed;
             right: 15px;
@@ -254,6 +252,13 @@ def configure_page():
             font-size: 11px;
             z-index: 999;
             border-radius: 20px;
+            border: 1px solid #ddd;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.5s ease;
         }
         .footer-icon {
             width: 20px;
@@ -266,10 +271,56 @@ def configure_page():
             font-size: 10px;
             color: white;
             font-weight: bold;
+            transition: all 0.3s ease;
         }
         .footer-text {
+            transition: opacity 0.5s ease, width 0.5s ease;
             white-space: nowrap;
             overflow: hidden;
+        }
+        .footer-minimal {
+            padding: 6px;
+            gap: 0;
+        }
+        .footer-minimal .footer-text {
+            opacity: 0;
+            width: 0;
+        }
+        
+        /* Animasyonlu footer */
+        .footer-animated .footer-text {
+            animation: fadeInOut 6s ease-in-out forwards;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 1; width: auto; }
+            50% { opacity: 1; width: auto; }
+            80% { opacity: 0; width: 0; }
+            100% { opacity: 0; width: 0; }
+        }
+        
+        .footer-animated {
+            animation: shrinkFooter 6s ease-in-out forwards;
+        }
+        
+        @keyframes shrinkFooter {
+            0% { padding: 8px 12px; }
+            50% { padding: 8px 12px; }
+            80% { padding: 6px; }
+            100% { padding: 6px; }
+        }
+        /* Debug paneli gizle */
+        .stDeployButton {
+            display: none !important;
+        }
+        .stApp > header {
+            display: none !important;
+        }
+        .stDecoration {
+            display: none !important;
+        }
+        .element-container:has(.stAlert) {
+            display: none !important;
         }
         /* Streamlit menü gizle */
         #MainMenu {
@@ -278,16 +329,12 @@ def configure_page():
         .stActionButton {
             visibility: hidden;
         }
-        .stDeployButton {
-            display: none !important;
-        }
         </style>
-        '''
+        """,
+        unsafe_allow_html=True,
+    )
     
-    # CSS'i birleştir ve ekle  
-    st.markdown(css_content + css_rest, unsafe_allow_html=True)
-    
-    # Footer ekle
+    # Footer ekle - CSS animasyonu ile
     st.markdown(
         """
         <div class="footer footer-animated">

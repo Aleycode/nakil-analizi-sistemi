@@ -126,86 +126,10 @@ def configure_page():
     """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
     
-    # Gece modu kontrolü
-    dark_mode = st.session_state.get("dark_mode", False)
-    
-    # Dinamik CSS - Gece/Gündüz modu
-    if dark_mode:
-        theme_css = """
-        /* GECE MODU */
-        .stApp {
-            background-color: #0E1117 !important;
-            color: #FAFAFA !important;
-        }
-        
-        .main-header {
-            font-size: 2.5rem;
-            color: #64B5F6 !important;
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .sub-header {
-            font-size: 1.8rem;
-            color: #FAFAFA !important;
-            margin-top: 2rem;
-        }
-        
-        .info-text {
-            font-size: 1rem;
-            color: #B0BEC5 !important;
-        }
-        
-        .success-box {
-            background-color: #1B2631 !important;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            border-left: 5px solid #4CAF50;
-            color: #FAFAFA !important;
-        }
-        
-        /* Sidebar gece modu */
-        [data-testid="stSidebar"] {
-            background-color: #1C1C1C !important;
-        }
-        
-        [data-testid="stSidebar"] .css-1lcbmhc {
-            background-color: #1C1C1C !important;
-        }
-        
-        /* Ana içerik alanı */
-        .block-container {
-            background-color: #0E1117 !important;
-            color: #FAFAFA !important;
-        }
-        
-        /* Butonlar gece modu */
-        .stButton > button {
-            background-color: #2E4057 !important;
-            color: #FAFAFA !important;
-            border: 1px solid #4A4A4A !important;
-        }
-        
-        .stButton > button:hover {
-            background-color: #3E5067 !important;
-            border: 1px solid #64B5F6 !important;
-        }
-        
-        /* Metin kutuları gece modu */
-        .stTextInput > div > div > input {
-            background-color: #2E4057 !important;
-            color: #FAFAFA !important;
-            border: 1px solid #4A4A4A !important;
-        }
-        
-        .stSelectbox > div > div > select {
-            background-color: #2E4057 !important;
-            color: #FAFAFA !important;
-        }
+    # Özel CSS
+    st.markdown(
         """
-    else:
-        theme_css = """
-        /* GÜNDÜZ MODU (VARSAYILAN) */
+        <style>
         .main-header {
             font-size: 2.5rem;
             color: #1E88E5;
@@ -227,23 +151,13 @@ def configure_page():
             border-radius: 0.5rem;
             border-left: 5px solid #4CAF50;
         }
-        """
-    
-    # Özel CSS - f-string hatası için normal string kullan
-    css_content = f"""
-        <style>
-        {theme_css}
-        
-        .pdf-button {{
+        .pdf-button {
             background-color: #ff6b6b;
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 0.3rem;
             text-decoration: none;
-        }}"""
-    
-    # CSS'in geri kalanını normal string olarak ekle - keyframes CSS problemsiz
-    css_rest = '''
+        }
         .footer {
             position: fixed;
             right: 15px;
@@ -254,6 +168,13 @@ def configure_page():
             font-size: 11px;
             z-index: 999;
             border-radius: 20px;
+            border: 1px solid #ddd;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.5s ease;
         }
         .footer-icon {
             width: 20px;
@@ -266,10 +187,56 @@ def configure_page():
             font-size: 10px;
             color: white;
             font-weight: bold;
+            transition: all 0.3s ease;
         }
         .footer-text {
+            transition: opacity 0.5s ease, width 0.5s ease;
             white-space: nowrap;
             overflow: hidden;
+        }
+        .footer-minimal {
+            padding: 6px;
+            gap: 0;
+        }
+        .footer-minimal .footer-text {
+            opacity: 0;
+            width: 0;
+        }
+        
+        /* Animasyonlu footer */
+        .footer-animated .footer-text {
+            animation: fadeInOut 6s ease-in-out forwards;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 1; width: auto; }
+            50% { opacity: 1; width: auto; }
+            80% { opacity: 0; width: 0; }
+            100% { opacity: 0; width: 0; }
+        }
+        
+        .footer-animated {
+            animation: shrinkFooter 6s ease-in-out forwards;
+        }
+        
+        @keyframes shrinkFooter {
+            0% { padding: 8px 12px; }
+            50% { padding: 8px 12px; }
+            80% { padding: 6px; }
+            100% { padding: 6px; }
+        }
+        /* Debug paneli gizle */
+        .stDeployButton {
+            display: none !important;
+        }
+        .stApp > header {
+            display: none !important;
+        }
+        .stDecoration {
+            display: none !important;
+        }
+        .element-container:has(.stAlert) {
+            display: none !important;
         }
         /* Streamlit menü gizle */
         #MainMenu {
@@ -278,16 +245,12 @@ def configure_page():
         .stActionButton {
             visibility: hidden;
         }
-        .stDeployButton {
-            display: none !important;
-        }
         </style>
-        '''
+        """,
+        unsafe_allow_html=True,
+    )
     
-    # CSS'i birleştir ve ekle  
-    st.markdown(css_content + css_rest, unsafe_allow_html=True)
-    
-    # Footer ekle
+    # Footer ekle - CSS animasyonu ile
     st.markdown(
         """
         <div class="footer footer-animated">
@@ -1072,8 +1035,104 @@ def ana_sayfa():
     
     st.markdown("---")
     
-    # Basit sistem durumu
-    st.markdown("###  Sistem Durumu")
+    st.markdown("### 🚀 Özellikler ve Kullanım")
+    
+    # Özellikler kartları
+    features = [
+        {
+            "icon": "📊",
+            "title": "Excel Veri İşleme",
+            "description": "Yukarıdaki yükleme alanından Excel dosyasını yükleyin → Otomatik olarak Parquet formatına dönüştürülür",
+            "action": "Ana sayfadan dosya yükle"
+        },
+        {
+            "icon": "📈", 
+            "title": "Kapsamlı Veri Analizi",
+            "description": "Soldaki menüden 'Nakil Analizi' → Tarih seçin → Analiz raporlarını görüntüleyin",
+            "action": "Nakil Analizi sayfasına git"
+        },
+        {
+            "icon": "📋",
+            "title": "Günlük ve Tarihsel Veriler", 
+            "description": "Her gün yeni rapor yükleyebilir, geçmiş verileri karşılaştırabilirsiniz",
+            "action": "Veri İşleme sayfasından yönet"
+        },
+        {
+            "icon": "🔍",
+            "title": "Bölge ve Klinik Analizi",
+            "description": "Otomatik olarak bölgelere göre gruplandırma ve klinik bazlı detay analizler",
+            "action": "Analiz sonuçlarında otomatik"
+        },
+        {
+            "icon": "📉",
+            "title": "Otomatik Grafik Oluşturma", 
+            "description": "Bekleme süreleri, vaka tipleri, bölgesel dağılım grafiklerini otomatik oluşturur",
+            "action": "Analiz sonrasında otomatik"
+        },
+        {
+            "icon": "📄",
+            "title": "PDF Rapor Oluşturma",
+            "description": "Rapor Arşivi'nden istediğiniz tarihin PDF raporunu görüntüleyip indirebilirsiniz",
+            "action": "Rapor Arşivi sayfasına git"
+        }
+    ]
+    
+    # Özellikleri 2 sütun halinde göster
+    for i in range(0, len(features), 2):
+        col1, col2 = st.columns(2)
+        
+        # Sol sütun
+        with col1:
+            if i < len(features):
+                feature = features[i]
+                st.markdown(f"""
+                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 10px; background-color: #f9f9f9;">
+                    <h4>{feature['icon']} {feature['title']}</h4>
+                    <p style="font-size: 0.9em; color: #666;">{feature['description']}</p>
+                    <p style="font-size: 0.8em; color: #1E88E5; font-weight: bold;">➡️ {feature['action']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Sağ sütun  
+        with col2:
+            if i + 1 < len(features):
+                feature = features[i + 1]
+                st.markdown(f"""
+                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 10px; background-color: #f9f9f9;">
+                    <h4>{feature['icon']} {feature['title']}</h4>
+                    <p style="font-size: 0.9em; color: #666;">{feature['description']}</p>
+                    <p style="font-size: 0.8em; color: #1E88E5; font-weight: bold;">➡️ {feature['action']}</p>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    # Hızlı başlangıç rehberi
+    st.markdown("---")
+    st.markdown("### 🚀 Hızlı Başlangıç Rehberi")
+    
+    with st.expander("📖 İlk kez mi kullanıyorsunuz? Adım adım rehber:", expanded=False):
+        st.markdown("""
+        #### 1️⃣ Rapor Yükleme
+        - Yukarıdaki **"Nakil Raporu Yükle"** bölümünden Excel dosyanızı seçin
+        - **"Hemen İşle"** butonuna tıklayın (dosya otomatik işlenir)
+        
+        #### 2️⃣ Analiz Görüntüleme  
+        - Sol menüden **"📊 Nakil Analizi"** sayfasına gidin
+        - İşlenen tarihten birini seçin
+        - **"Günlük Rapor Görüntüle"** seçin
+        
+        #### 3️⃣ PDF Raporu İndirme
+        - Sol menüden **"📄 Rapor Arşivi"** sayfasına gidin  
+        - İstediğiniz tarihi seçin
+        - PDF raporunu görüntüleyin veya indirin
+        
+        #### 💡 İpuçları:
+        - Her gün yeni rapor yükleyebilirsiniz
+        - Grafikler otomatik oluşturulur
+        - Tüm veriler güvenli şekilde saklanır
+        """)
+    
+    # Sistem durumu
+    st.markdown("### 📊 Sistem Durumu")
     
     col1, col2, col3 = st.columns(3)
     
@@ -1083,13 +1142,12 @@ def ana_sayfa():
         st.metric("Excel Dosyaları", excel_count)
     
     with col2:
-        st.markdown("#### 📊 İşlenmiş Veri")  
-        processed_dir = ROOT_DIR / "data" / "processed"
+        st.markdown("#### 📊 İşlenmiş Veri")
         processed_count = 0
-        if processed_dir.exists():
-            processed_dirs = [d for d in processed_dir.iterdir() if d.is_dir()]
+        if ISLENMIŞ_VERI_DIZIN and ISLENMIŞ_VERI_DIZIN.exists():
+            processed_dirs = [d for d in ISLENMIŞ_VERI_DIZIN.iterdir() if d.is_dir()]
             processed_count = len(processed_dirs)
-        st.metric("İşlenmiş Veri", processed_count)
+        st.metric("İşlenmiş Veri Klasörleri", processed_count)
     
     with col3:
         st.markdown("#### 📑 Raporlar")
@@ -1137,12 +1195,6 @@ def main():
             <h2 style="margin: 0; color: white;">🏥 NAKİL ANALİZ SİSTEMİ</h2>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Gece modu toggle
-        st.markdown("---")
-        dark_mode = st.toggle("🌙 Gece Modu", value=st.session_state.get("dark_mode", False))
-        st.session_state.dark_mode = dark_mode
-        st.markdown("---")
         
         menu_options = {
             "ana_sayfa": "🏠 Ana Sayfa",
