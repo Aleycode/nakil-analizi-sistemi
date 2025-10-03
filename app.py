@@ -789,7 +789,6 @@ def veri_isleme_sayfasi():
                         if result.returncode == 0:
                             st.success("🎉 Veri işleme başarılı!")
                             st.info(result.stdout)
-                            st.balloons()
                             
                             # İleriye yönlendirme butonları
                             col1, col2 = st.columns(2)
@@ -1132,7 +1131,6 @@ def ana_sayfa():
                         if result.returncode == 0:
                             st.success("🎉 Veri işleme başarılı!")
                             st.info(result.stdout)
-                            st.balloons()
                             
                             # İleriye yönlendirme butonları
                             col1, col2 = st.columns(2)
