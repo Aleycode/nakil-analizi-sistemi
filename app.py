@@ -318,30 +318,57 @@ def run_command(command):
 
 
 def process_daily_data(file_path):
-    """Günlük veri işleme - Streamlit Cloud uyumlu"""
+    """Günlük veri işleme - Streamlit Cloud uyumlu SADECE Excel okuma"""
     try:
-        # Streamlit Cloud için direkt Python modülü kullan
-        if config_loaded:
-            from src.processors.veri_isleme import VeriIsleme
+        import pandas as pd
+        from pathlib import Path
+        
+        # Dosya yolu kontrolü
+        file_path = Path(file_path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"Dosya bulunamadı: {file_path}")
+        
+        # Excel dosyasını okumayı dene
+        try:
+            # .xls dosyaları için xlrd engine
+            if file_path.suffix.lower() == '.xls':
+                df = pd.read_excel(file_path, engine='xlrd')
+            else:
+                # .xlsx dosyaları için openpyxl engine  
+                df = pd.read_excel(file_path, engine='openpyxl')
             
-            # Veri işleyiciyi başlat
-            veri_isleyici = VeriIsleme()
+            # Basit veri kontrolü
+            if df.empty:
+                raise ValueError("Excel dosyası boş")
             
-            # Excel dosyasını işle
-            result = veri_isleyici.excel_dosyasi_isle(str(file_path))
+            # Veri temizleme
+            df = df.dropna(how='all')
+            
+            # Parquet klasörü oluştur
+            processed_dir = ROOT_DIR / "data" / "processed"
+            processed_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Parquet formatında kaydet
+            output_file = processed_dir / f"processed_{file_path.stem}.parquet"
+            df.to_parquet(output_file, index=False)
             
             # Başarılı sonuç oluştur
             class SuccessResult:
-                def __init__(self):
+                def __init__(self, row_count, col_count):
                     self.returncode = 0
-                    self.stdout = f"✅ Dosya başarıyla işlendi: {Path(file_path).name}\n📊 Veri parquet formatına dönüştürüldü\n📅 Yeni analiz için hazır!"
+                    self.stdout = f"""✅ Dosya başarıyla işlendi: {file_path.name}
+📊 {row_count:,} satır veri okundu
+📋 {col_count} sütun bulundu  
+� Parquet formatında kaydedildi
+�📅 Analiz için hazır!
+
+💡 Şimdi Nakil Analizi sayfasına gidebilirsiniz"""
                     self.stderr = ""
             
-            return SuccessResult()
-        else:
-            # Fallback: komut satırı
-            command = ["python", "main.py", "--process-daily", str(file_path)]
-            return run_command(command)
+            return SuccessResult(len(df), len(df.columns))
+            
+        except Exception as excel_error:
+            raise ValueError(f"Excel okuma hatası: {excel_error}")
             
     except Exception as e:
         # Hata durumunda
@@ -349,7 +376,13 @@ def process_daily_data(file_path):
             def __init__(self, error_msg):
                 self.returncode = 1
                 self.stdout = ""
-                self.stderr = f"❌ İşlem hatası: {error_msg}\n💡 Dosya formatını kontrol edin (.xls/.xlsx)"
+                self.stderr = f"""❌ İşlem hatası: {str(error_msg)}
+
+� Olası çözümler:
+• Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
+• Dosyanın bozuk olmadığını doğrulayın  
+• Excel dosyasının içinde veri olduğundan emin olun
+• Farklı bir Excel dosyası deneyin"""
         
         return ErrorResult(str(e))
 
