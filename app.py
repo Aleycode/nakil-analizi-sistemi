@@ -173,6 +173,34 @@ def configure_page():
             background-color: #1C1C1C !important;
         }
         
+        /* Sidebar yazıları */
+        [data-testid="stSidebar"] * {
+            color: #FAFAFA !important;
+        }
+        
+        [data-testid="stSidebar"] .css-1v0mbdj {
+            color: #FAFAFA !important;
+        }
+        
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] div {
+            color: #FAFAFA !important;
+        }
+        
+        /* Sidebar radio butonları */
+        [data-testid="stSidebar"] label {
+            color: #FAFAFA !important;
+        }
+        
+        /* Sidebar markdown yazıları */
+        [data-testid="stSidebar"] .css-10trblm {
+            color: #FAFAFA !important;
+        }
+        
         /* Ana içerik alanı */
         .block-container {
             background-color: #0E1117 !important;
@@ -196,6 +224,13 @@ def configure_page():
             background-color: #2E4057 !important;
             color: #FAFAFA !important;
             border: 1px solid #4A4A4A !important;
+        }
+        
+        /* Footer gece modu */
+        .footer {
+            background-color: rgba(28, 28, 28, 0.95) !important;
+            color: #FAFAFA !important;
+            border: 1px solid #444 !important;
         }
         
         .stSelectbox > div > div > select {
@@ -226,6 +261,25 @@ def configure_page():
             padding: 1rem;
             border-radius: 0.5rem;
             border-left: 5px solid #4CAF50;
+        }
+        
+        /* Sidebar yazıları gündüz modu */
+        [data-testid="stSidebar"] * {
+            color: #333 !important;
+        }
+        
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] div {
+            color: #333 !important;
+        }
+        
+        /* Sidebar radio butonları */
+        [data-testid="stSidebar"] label {
+            color: #333 !important;
         }
         """
     
