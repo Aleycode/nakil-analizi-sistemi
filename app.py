@@ -292,6 +292,108 @@ def configure_page():
         [data-testid="stMetricLabel"] {
             color: #B0BEC5 !important;
         }
+        
+        /* Radio button gece modu - nakil analizi sayfası için */
+        div[data-testid="stRadio"] > div {
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stRadio"] label {
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stRadio"] span {
+            color: #FAFAFA !important;
+        }
+        
+        /* Selectbox gece modu */
+        div[data-testid="stSelectbox"] label {
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stSelectbox"] > div > div {
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
+            border: 1px solid #4A4A4A !important;
+        }
+        
+        /* Checkbox gece modu */
+        div[data-testid="stCheckbox"] label {
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stCheckbox"] span {
+            color: #FAFAFA !important;
+        }
+        
+        /* Expander gece modu */
+        div[data-testid="stExpander"] {
+            background-color: #1C1C1C !important;
+            border: 1px solid #333 !important;
+        }
+        
+        div[data-testid="stExpander"] label {
+            color: #FAFAFA !important;
+        }
+        
+        /* Tab yazıları gece modu */
+        div[data-testid="stTabs"] button {
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stTabs"] button[data-baseweb="tab-highlight"] {
+            color: #64B5F6 !important;
+        }
+        
+        /* Markdown yazıları gece modu */
+        .stMarkdown {
+            color: #FAFAFA !important;
+        }
+        
+        .stMarkdown h1,
+        .stMarkdown h2,
+        .stMarkdown h3,
+        .stMarkdown h4,
+        .stMarkdown h5,
+        .stMarkdown h6 {
+            color: #FAFAFA !important;
+        }
+        
+        .stMarkdown p {
+            color: #FAFAFA !important;
+        }
+        
+        /* Alert kutuları gece modu */
+        div[data-testid="stAlert"] {
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stSuccess"] {
+            background-color: #1B2631 !important;
+            border-left: 5px solid #4CAF50 !important;
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stWarning"] {
+            background-color: #2A2419 !important;
+            border-left: 5px solid #FF9800 !important;
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stInfo"] {
+            background-color: #1A2332 !important;
+            border-left: 5px solid #2196F3 !important;
+            color: #FAFAFA !important;
+        }
+        
+        /* Grafik container'ları */
+        .js-plotly-plot {
+            background-color: #1C1C1C !important;
+        }
+        
+        .plotly {
+            background-color: #1C1C1C !important;
+        }
         """
     else:
         theme_css = """
