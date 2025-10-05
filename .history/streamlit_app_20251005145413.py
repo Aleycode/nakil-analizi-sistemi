@@ -632,8 +632,4 @@ def main():
         existing_files_section()
 
 if __name__ == "__main__":
-    # Session state başlat
-    if "page" not in st.session_state:
-        st.session_state.page = "ana_sayfa"
-    
     main()

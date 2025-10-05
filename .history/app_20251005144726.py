@@ -1296,8 +1296,8 @@ def rapor_sayfasi():
                 st.rerun()
                 
         with col3:
-            if st.button("� Excel Yükle", use_container_width=True):
-                st.session_state.page = "ana_sayfa"
+            if st.button("📋 Veri İşleme", use_container_width=True):
+                st.session_state.page = "veri_isleme"
                 st.rerun()
         
         return

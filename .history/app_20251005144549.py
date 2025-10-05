@@ -1123,6 +1123,108 @@ def show_graphs(date_folder, num_graphs=6):
             st.image(str(graph), caption=graph.name, use_container_width=True)
 
 
+def veri_isleme_sayfasi():
+    """Veri işleme sayfası içeriği"""
+    st.markdown("<h1 class='main-header'>Excel Veri İşleme</h1>", unsafe_allow_html=True)
+    
+    # Ham veri dosyalarını listele
+    excel_files = get_raw_files()
+    
+    if not excel_files:
+        st.warning("⚠️ Ham veri klasöründe Excel dosyası bulunamadı.")
+        
+        # Dosya yükleme seçeneği ekle
+        st.subheader("Yeni Excel Dosyası Yükle")
+        uploaded_file = st.file_uploader("Excel Dosyasını Seçin (.xls veya .xlsx)", type=["xls", "xlsx"])
+        
+        if uploaded_file is not None:
+            # Dosyayı raw klasörüne kaydet
+            save_path = DATA_RAW_DIR / uploaded_file.name
+            try:
+                DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
+                with open(save_path, "wb") as f:
+                    f.write(uploaded_file.getvalue())
+                st.success(f"✅ Dosya kaydedildi: {save_path}")
+                
+                # Dosyayı işlemek için buton ekle
+                if st.button("Yüklenen Dosyayı İşle"):
+                    with st.spinner("Veriler işleniyor..."):
+                        result = process_daily_data(str(save_path))
+                        if result.returncode == 0:
+                            st.success("✅ Veri işleme başarılı!")
+                            st.code(result.stdout)
+                        else:
+                            st.error("❌ Veri işleme hatası:")
+                            st.code(result.stderr)
+            except Exception as e:
+                st.error(f"❌ Dosya kaydetme hatası: {e}")
+    else:
+        # Mevcut dosyaları göster
+        st.subheader("Mevcut Excel Dosyaları")
+        selected_file = st.selectbox("İşlenecek dosyayı seçin:", excel_files)
+        
+        if selected_file:
+            file_path = DATA_RAW_DIR / selected_file
+            st.info(f"Seçilen dosya: {file_path}")
+            
+            # Dosya önizleme ekle
+            try:
+                # Hem .xls hem de .xlsx dosyaları için openpyxl kullan
+                df = pd.read_excel(file_path, engine="openpyxl")
+                
+                st.write("Veri Önizleme:")
+                st.dataframe(df.head())
+                st.caption(f"Toplam {len(df)} satır veri")
+                
+                # İşleme butonu
+                if st.button("Dosyayı İşle", type="primary", use_container_width=True):
+                    with st.spinner("🔄 Veriler işleniyor... Lütfen bekleyin"):
+                        result = process_daily_data(str(file_path))
+                        if result.returncode == 0:
+                            st.success("🎉 Veri işleme başarılı!")
+                            st.info(result.stdout)
+                            
+                            # İleriye yönlendirme butonları
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("📊 Analiz Sayfasına Git", use_container_width=True):
+                                    st.session_state.page = "analiz"
+                                    st.rerun()
+                            with col2:
+                                if st.button("🏠 Ana Sayfaya Dön", use_container_width=True):
+                                    st.session_state.page = "ana_sayfa"
+                                    st.rerun()
+                        else:
+                            st.error("❌ Veri işleme hatası:")
+                            st.code(result.stderr)
+                            
+                            # Hata durumunda yardım
+                            with st.expander("🆘 Sorun giderme önerileri"):
+                                st.markdown("""
+                                **Olası çözümler:**
+                                - Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
+                                - Dosyanın bozuk olmadığını doğrulayın
+                                - Farklı bir Excel dosyası deneyin
+                                - Ana sayfadan "Hemen İşle" butonunu kullanmayı deneyin
+                                """)
+            except Exception as e:
+                st.error(f"❌ Dosya okuma hatası: {e}")
+        
+        # Yeni dosya yükleme seçeneği
+        with st.expander("Yeni Excel Dosyası Yükle"):
+            uploaded_file = st.file_uploader("Excel Dosyasını Seçin (.xls veya .xlsx)", type=["xls", "xlsx"], key="new_upload")
+            
+            if uploaded_file is not None:
+                # Dosyayı raw klasörüne kaydet
+                save_path = DATA_RAW_DIR / uploaded_file.name
+                try:
+                    with open(save_path, "wb") as f:
+                        f.write(uploaded_file.getvalue())
+                    st.success(f"✅ Dosya kaydedildi: {save_path}")
+                    st.button("Sayfayı Yenile", on_click=st.rerun)
+                except Exception as e:
+                    st.error(f"❌ Dosya kaydetme hatası: {e}")
+
 
 def analiz_sayfasi():
     """Analiz sayfası içeriği"""
@@ -1132,9 +1234,9 @@ def analiz_sayfasi():
     dates = get_existing_dates()
     
     if not dates:
-        st.warning("⚠️ Henüz işlenmiş veri bulunamadı. Önce Excel dosyası yükleyip işlemelisiniz.")
-        if st.button("🏠 Ana Sayfaya Dön (Excel Yükle)"):
-            st.session_state.page = "ana_sayfa"
+        st.warning("⚠️ Henüz işlenmiş veri bulunamadı. Önce veri işleme yapmalısınız.")
+        if st.button("Veri İşleme Sayfasına Git"):
+            st.session_state.page = "veri_isleme"
             st.rerun()
         return
     
@@ -1296,8 +1398,8 @@ def rapor_sayfasi():
                 st.rerun()
                 
         with col3:
-            if st.button("� Excel Yükle", use_container_width=True):
-                st.session_state.page = "ana_sayfa"
+            if st.button("📋 Veri İşleme", use_container_width=True):
+                st.session_state.page = "veri_isleme"
                 st.rerun()
         
         return
@@ -1472,55 +1574,11 @@ def ana_sayfa():
                                 **Olası çözümler:**
                                 - Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
                                 - Dosyanın bozuk olmadığını doğrulayın
-                                - Mevcut dosyalar bölümünden farklı bir dosya deneyin
-                                - Dosyanın bozuk olmadığını Excel'de açarak kontrol edin
+                                - Veri İşleme sayfasından farklı bir dosya deneyin
                                 """)
                             
                 except Exception as e:
                     st.error(f"❌ İşlem hatası: {e}")
-    
-    # Mevcut dosyaları göster
-    st.markdown("### 📂 Mevcut Excel Dosyaları")
-    excel_files = get_raw_files()
-    
-    if excel_files:
-        selected_file = st.selectbox("📋 Daha önce yüklediğiniz dosyalardan birini seçebilirsiniz:", 
-                                   ["Dosya seçin..."] + excel_files)
-        
-        if selected_file and selected_file != "Dosya seçin...":
-            file_path = DATA_RAW_DIR / selected_file
-            
-            col1, col2 = st.columns([2, 1])
-            
-            with col1:
-                st.info(f"📄 Seçilen dosya: **{selected_file}**")
-                
-                # Dosya önizleme
-                try:
-                    df = pd.read_excel(file_path, engine="openpyxl")
-                    with st.expander("👀 Dosya Önizleme"):
-                        st.dataframe(df.head(5), use_container_width=True)
-                        st.caption(f"Toplam {len(df):,} satır, {len(df.columns)} sütun")
-                except Exception as e:
-                    st.warning(f"⚠️ Önizleme oluşturulamadı: {e}")
-            
-            with col2:
-                st.markdown("#### 🔧 İşlemler")
-                if st.button("🚀 Bu Dosyayı İşle", type="primary", use_container_width=True):
-                    with st.spinner("🔄 Dosya işleniyor..."):
-                        result = process_daily_data(str(file_path))
-                        if result.returncode == 0:
-                            st.success("✅ İşlem başarılı!")
-                            st.balloons()
-                            # Analiz sayfasına yönlendir
-                            if st.button("📊 Analize Git", use_container_width=True):
-                                st.session_state.page = "analiz"
-                                st.rerun()
-                        else:
-                            st.error("❌ İşlem hatası:")
-                            st.code(result.stderr)
-    else:
-        st.info("📥 Henüz Excel dosyası yüklenmemiş. Yukarıdaki yükleme alanını kullanın.")
     
     st.markdown("---")
     

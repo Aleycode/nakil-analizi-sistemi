@@ -587,53 +587,45 @@ def analysis_section():
 def main():
     configure_page()
     
-    # Sidebar menüsü
+    # Uygulama başlığı
+    st.markdown("<h1 class='main-header'>Nakil Analiz Sistemi</h1>", unsafe_allow_html=True)
+    st.markdown("<p class='info-text'>Bu sistem, nakil vaka talepleri verilerini analiz eder ve otomatik raporlar oluşturur.</p>", unsafe_allow_html=True)
+    
+    # Sidebar bilgileri
     with st.sidebar:
-        st.markdown("# 🏥 NAKİL ANALİZ SİSTEMİ")
+        st.title("Nakil Analiz")
+        st.info(
+            """
+            Bu uygulamanın kullanımı:
+            1. Excel dosyasını yükleyin veya mevcut dosyalardan seçin
+            2. 'Günlük Veri İşle' butonuna tıklayın
+            3. İşlem tamamlandıktan sonra bir tarih seçin
+            4. 'Analiz Yap' butonuna tıklayın
+            5. Raporu inceleyin ve PDF olarak indirin
+            """
+        )
         
         st.markdown("---")
-        
-        menu_options = {
-            "ana_sayfa": "🏠 Ana Sayfa",
-            "analiz": "📊 Nakil Analizi",
-            "rapor": "📄 Rapor Arşivi",
-        }
-        
-        selected_page = st.radio("📋 Menü Seçimi:", list(menu_options.values()), key="sidebar_menu")
-        
-        # Sayfa seçimini state'e kaydet
-        for key, value in menu_options.items():
-            if selected_page == value:
-                st.session_state.page = key
-        
-        st.markdown("---")
-        st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
+        st.caption("© 2025 Nakil Analiz Sistemi")
     
-    # Ana içerik - sayfa yönlendirmeleri
-    current_page = st.session_state.get("page", "ana_sayfa")
+    # Ana sayfa düzeni
+    st.markdown("---")
+    st.markdown("<h2 style='text-align: center;'>Aşağıdan İşlem Seçin</h2>", unsafe_allow_html=True)
+    st.markdown("---")
     
-    if current_page == "analiz":
-        analysis_section()
-    elif current_page == "rapor":
-        # Basit rapor listesi (app.py'den kopyalanacak)
-        st.markdown("<h1 class='main-header'>Rapor Arşivi</h1>", unsafe_allow_html=True)
-        st.info("Rapor arşivi özelliği için ana app.py dosyasını kullanın.")
-    else:  # Ana sayfa varsayılan
-        # Ana sayfa içeriği
-        st.markdown("<h1 class='main-header'>Nakil Z Raporu Analiz Sistemi</h1>", unsafe_allow_html=True)
-        st.markdown("<p class='info-text'>Bu sistem, nakil vaka talepleri verilerini analiz eder ve otomatik raporlar oluşturur.</p>", unsafe_allow_html=True)
-        
-        # Excel yükleme bölümü
-        st.markdown("### 📤 Nakil Raporu Yükle")
+    tab1, tab2, tab3 = st.tabs(["📤 Veri Yükleme", "📂 Mevcut Dosyalar", "📊 Analiz"])
+    
+    with tab1:
+        st.markdown("<h3 style='color: #1E88E5;'>Excel Dosyası Yükle</h3>", unsafe_allow_html=True)
         file_uploader_section()
-        
-        # Mevcut dosyalar bölümü
-        st.markdown("### 📂 Mevcut Excel Dosyaları")
+    
+    with tab2:
+        st.markdown("<h3 style='color: #1E88E5;'>Mevcut Excel Dosyaları</h3>", unsafe_allow_html=True)
         existing_files_section()
+    
+    with tab3:
+        st.markdown("<h3 style='color: #1E88E5;'>Nakil Analizi</h3>", unsafe_allow_html=True)
+        analysis_section()
 
 if __name__ == "__main__":
-    # Session state başlat
-    if "page" not in st.session_state:
-        st.session_state.page = "ana_sayfa"
-    
     main()

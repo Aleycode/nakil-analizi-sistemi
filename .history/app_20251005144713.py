@@ -1132,9 +1132,9 @@ def analiz_sayfasi():
     dates = get_existing_dates()
     
     if not dates:
-        st.warning("⚠️ Henüz işlenmiş veri bulunamadı. Önce Excel dosyası yükleyip işlemelisiniz.")
-        if st.button("🏠 Ana Sayfaya Dön (Excel Yükle)"):
-            st.session_state.page = "ana_sayfa"
+        st.warning("⚠️ Henüz işlenmiş veri bulunamadı. Önce veri işleme yapmalısınız.")
+        if st.button("Veri İşleme Sayfasına Git"):
+            st.session_state.page = "veri_isleme"
             st.rerun()
         return
     
@@ -1296,8 +1296,8 @@ def rapor_sayfasi():
                 st.rerun()
                 
         with col3:
-            if st.button("� Excel Yükle", use_container_width=True):
-                st.session_state.page = "ana_sayfa"
+            if st.button("📋 Veri İşleme", use_container_width=True):
+                st.session_state.page = "veri_isleme"
                 st.rerun()
         
         return
