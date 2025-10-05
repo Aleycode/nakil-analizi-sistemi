@@ -1508,11 +1508,19 @@ def ana_sayfa():
                     status_text = st.empty()
                     status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
                     progress_bar.progress(25)
-                    result = process_daily_data(str(save_path), unique_id=unique_id)
+                    
+                    try:
+                        result = process_daily_data(str(save_path), unique_id=unique_id)
+                    except Exception as e:
+                        st.error(f"❌ Beklenmeyen hata: {str(e)}")
+                        import traceback
+                        st.code(traceback.format_exc())
+                        return
                     
                     if result.returncode != 0:
                         st.error("❌ Veri işleme hatası!")
-                        st.code(result.stderr)
+                        with st.expander("Hata Detayları", expanded=True):
+                            st.code(result.stderr)
                     else:
                         progress_bar.progress(50)
                         st.success("✅ Veri başarıyla işlendi!")
