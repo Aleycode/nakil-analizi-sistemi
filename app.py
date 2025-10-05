@@ -394,6 +394,115 @@ def configure_page():
         .plotly {
             background-color: #1C1C1C !important;
         }
+        
+        /* TÜM YAZI ELEMENTLERİ İÇİN GENEL KURALLAR */
+        
+        /* Tüm text elementleri */
+        * {
+            color: #FAFAFA !important;
+        }
+        
+        /* Tüm div'ler */
+        div {
+            color: #FAFAFA !important;
+        }
+        
+        /* Tüm span'lar */
+        span {
+            color: #FAFAFA !important;
+        }
+        
+        /* Tüm p elementleri */
+        p {
+            color: #FAFAFA !important;
+        }
+        
+        /* Tüm label'lar */
+        label {
+            color: #FAFAFA !important;
+        }
+        
+        /* Streamlit özel elementler */
+        .element-container {
+            color: #FAFAFA !important;
+        }
+        
+        .element-container * {
+            color: #FAFAFA !important;
+        }
+        
+        /* Block container içindeki tüm elementler */
+        .block-container * {
+            color: #FAFAFA !important;
+        }
+        
+        /* Ana sayfa container'ı */
+        .main * {
+            color: #FAFAFA !important;
+        }
+        
+        /* Grafik açıklamaları */
+        .stPlotlyChart {
+            color: #FAFAFA !important;
+        }
+        
+        .stPlotlyChart * {
+            color: #FAFAFA !important;
+        }
+        
+        /* Streamlit widgets yazıları */
+        .stWidget {
+            color: #FAFAFA !important;
+        }
+        
+        .stWidget * {
+            color: #FAFAFA !important;
+        }
+        
+        /* Form elementleri */
+        .stForm {
+            color: #FAFAFA !important;
+        }
+        
+        .stForm * {
+            color: #FAFAFA !important;
+        }
+        
+        /* Caption yazıları */
+        .caption {
+            color: #B0BEC5 !important;
+        }
+        
+        /* Small yazıları */
+        small {
+            color: #B0BEC5 !important;
+        }
+        
+        /* İçerik alanındaki tüm yazılar */
+        .css-1d391kg * {
+            color: #FAFAFA !important;
+        }
+        
+        /* Streamlit component'leri */
+        [class*="css-"] {
+            color: #FAFAFA !important;
+        }
+        
+        /* Text input placeholder'ları */
+        input::placeholder {
+            color: #B0BEC5 !important;
+        }
+        
+        /* Dropdown yazıları */
+        option {
+            color: #FAFAFA !important;
+            background-color: #2E4057 !important;
+        }
+        
+        select {
+            color: #FAFAFA !important;
+            background-color: #2E4057 !important;
+        }
         """
     else:
         theme_css = """
