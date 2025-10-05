@@ -1404,17 +1404,41 @@ Python: {sys.executable}
                                 self.stdout = "Analiz tamamlandı" if success else ""
                                 self.stderr = "" if success else "Analiz başarısız"
                         
-                        analiz_result = AnalysisResult(rapor_sonuc.get("durum") == "basarili" if rapor_sonuc else False)
+                        # Sonuç kontrolü ve detaylı hata mesajı
+                        if rapor_sonuc and rapor_sonuc.get("durum") == "basarili":
+                            analiz_result = AnalysisResult(True)
+                        else:
+                            # Hata detaylarını topla
+                            hata_mesaji = "Analiz başarısız oldu.\n\n"
+                            if rapor_sonuc:
+                                hata_mesaji += f"Durum: {rapor_sonuc.get('durum', 'bilinmiyor')}\n"
+                                if 'hata' in rapor_sonuc:
+                                    hata_mesaji += f"Hata: {rapor_sonuc['hata']}\n"
+                                if 'mesaj' in rapor_sonuc:
+                                    hata_mesaji += f"Mesaj: {rapor_sonuc['mesaj']}\n"
+                            else:
+                                hata_mesaji += "rapor_sonuc None döndü - analiz fonksiyonu hiçbir şey döndürmedi"
+                            
+                            class AnalysisFailResult:
+                                def __init__(self, msg):
+                                    self.returncode = 1
+                                    self.stdout = ""
+                                    self.stderr = msg
+                            
+                            analiz_result = AnalysisFailResult(hata_mesaji)
                         
                     except Exception as analiz_error:
-                        # Analiz hatası
+                        # Exception yakalandı
+                        import traceback
+                        hata_detay = traceback.format_exc()
+                        
                         class AnalysisErrorResult:
-                            def __init__(self, error):
+                            def __init__(self, error, detail):
                                 self.returncode = 1
                                 self.stdout = ""
-                                self.stderr = f"Analiz sırasında hata: {str(error)}"
+                                self.stderr = f"Analiz sırasında exception:\n\n{str(error)}\n\nDetay:\n{detail}"
                         
-                        analiz_result = AnalysisErrorResult(analiz_error)
+                        analiz_result = AnalysisErrorResult(analiz_error, hata_detay)
                     
                     progress_bar.progress(100)
                     status_text.text("")
