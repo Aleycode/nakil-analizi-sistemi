@@ -1507,17 +1507,37 @@ def ana_sayfa():
                     status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
                     progress_bar.progress(25)
                     result = process_daily_data(str(save_path), unique_id=unique_id)
-                        if result.returncode == 0:
-                            st.success("⚡ Hızlı işlem tamamlandı!")
-                            st.info(result.stdout)
-                            
-                            # İleriye yönlendirme butonları
-                            col1, col2, col3 = st.columns(3)
-                            with col1:
-                                if st.button("📊 Analiz Sayfasına Git", use_container_width=True, key="quick_to_analysis"):
-                                    st.session_state.page = "analiz"
-                                    st.rerun()
-                            with col2:
+                    
+                    if result.returncode != 0:
+                        st.error("❌ Veri işleme hatası!")
+                        st.code(result.stderr)
+                    else:
+                        progress_bar.progress(50)
+                        st.success("✅ Veri başarıyla işlendi!")
+                        
+                        status_text.text("📈 Adım 2/2: Analiz yapılıyor ve PDF oluşturuluyor...")
+                        progress_bar.progress(75)
+                        
+                        gun_tarihi = datetime.now().strftime("%Y-%m-%d")
+                        command = ["python", "main.py", "--analiz", gun_tarihi, "--unique-id", unique_id]
+                        analiz_result = run_command(command)
+                        
+                        progress_bar.progress(100)
+                        status_text.text("")
+                        
+                        if analiz_result.returncode == 0:
+                            st.balloons()
+                            st.success("🎉 Tüm işlemler tamamlandı! PDF raporunuz hazır.")
+                            st.info("� 'Rapor Arşivi' sayfasından raporunuzu görüntüleyebilir ve indirebilirsiniz.")
+                            if st.button("📊 Raporumu Görüntüle", use_container_width=True):
+                                st.session_state.page = "rapor"
+                                st.rerun()
+                        else:
+                            st.error("❌ Analiz hatası!")
+                            st.code(analiz_result.stderr)
+                    
+                except Exception as e:
+                    st.error(f"❌ İşlem hatası: {e}")
                                 if st.button("� Tam Analiz Yap", use_container_width=True, key="full_analysis"):
                                     with st.spinner("🔄 Tam analiz yapılıyor... Bu biraz zaman alabilir"):
                                         full_result = process_daily_data(str(save_path))
