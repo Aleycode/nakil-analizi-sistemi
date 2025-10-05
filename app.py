@@ -1458,82 +1458,13 @@ Python: {sys.executable}
                 st.error(f"❌ İşlem hatası: {e}")
                 import traceback
                 st.code(traceback.format_exc())
-    
-    st.markdown("---")
-    
-    # === RAPOR ARŞİVİ BÖLÜMÜ ===
-    st.markdown("### 📅 Rapor Arşivi")
-    
-    # Mevcut raporları al (tarih + unique_id)
-    reports = get_existing_reports()
-    
-    if not reports:
-        st.info("ℹ️ Henüz işlenmiş rapor bulunamadı. Yukarıdan Excel dosyası yükleyip işleyebilirsiniz.")
-        return
-    
-    # Rapor arşivi gösterimi
-    st.markdown("### 📅 Rapor Arşivi")
-    st.markdown("Daha önce işlediğiniz nakil verilerinden birini seçerek analiz ve raporları görüntüleyebilirsiniz:")
-    
-    # Her rapor için bir expander oluştur
-    for rep in reports:
-        # Başlık: Tarih | Kimlik | Excel dosya adı
-        expander_title = f"�️ {rep['tarih']}"
-        if rep['unique_id']:
-            expander_title += f"  |  🔑 {rep['unique_id'][:8]}..."
-        if rep['excel']:
-            expander_title += f"  |  📄 {rep['excel'][:30]}..."
-        
-        with st.expander(expander_title, expanded=False):
-            st.markdown(f"**Rapor Klasörü:** `{rep['folder']}`")
-            if rep['excel']:
-                st.markdown(f"**Kaynak Excel:** `{rep['excel']}`")
-            
-            # PDF raporu varsa göster
-            if rep['pdf'] and os.path.exists(rep['pdf']):
-                st.markdown("#### 📄 PDF Raporu")
-                with open(rep['pdf'], "rb") as pdf_file:
-                    pdf_bytes = pdf_file.read()
-                st.download_button(
-                    label="📥 PDF Raporu İndir",
-                    data=pdf_bytes,
-                    file_name=os.path.basename(rep['pdf']),
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key=f"pdf_download_{rep['folder']}"
-                )
-                st.markdown(f"- Dosya: {os.path.basename(rep['pdf'])}")
-                st.markdown(f"- Boyut: {os.path.getsize(rep['pdf'])/1024:.1f} KB")
-                
-                # PDF önizleme
-                with st.expander("📋 PDF Raporu Önizleme", expanded=False):
-                    show_pdf(rep['pdf'])
-            
-            # JSON analiz dosyası varsa bilgi göster
-            if rep['json'] and os.path.exists(rep['json']):
-                st.markdown(f"- Analiz JSON: `{os.path.basename(rep['json'])}`")
-            
-            # Grafikler
-            date_folder = DATA_REPORTS_DIR / rep['folder']
-            if date_folder.exists():
-                st.markdown("#### 📈 Analiz Grafikleri")
-                show_graphs(date_folder, num_graphs=9)
-                
-                st.markdown("#### 📊 Analiz İstatistikleri")
-                show_statistics(rep['folder'])
 
 
 # Eski analiz fonksiyonu kodları kaldırıldı - yukarıdaki analiz_sayfasi() yeni versiyondur
 
 
 def rapor_sayfasi():
-    """Rapor sayfası içeriği - analiz_sayfasi() ile aynı işlevsellik"""
-    # Rapor arşivi analiz sayfasıyla aynı, yönlendirme yapabiliriz
-    analiz_sayfasi()
-
-
-def rapor_sayfasi():
-    """Rapor sayfası içeriği"""
+    """Rapor Arşivi Sayfası - Geçmiş raporları görüntüleme"""
     st.markdown("<h1 class='main-header'>Rapor Arşivi</h1>", unsafe_allow_html=True)
     
     # Mevcut tarihleri kontrol et
