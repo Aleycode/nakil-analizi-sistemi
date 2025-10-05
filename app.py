@@ -1538,35 +1538,6 @@ def ana_sayfa():
                     
                 except Exception as e:
                     st.error(f"❌ İşlem hatası: {e}")
-                                if st.button("� Tam Analiz Yap", use_container_width=True, key="full_analysis"):
-                                    with st.spinner("🔄 Tam analiz yapılıyor... Bu biraz zaman alabilir"):
-                                        full_result = process_daily_data(str(save_path))
-                                        if full_result.returncode == 0:
-                                            st.success("🎉 Tam analiz tamamlandı!")
-                                            st.balloons()
-                                        else:
-                                            st.error("❌ Tam analiz hatası:")
-                                            st.code(full_result.stderr)
-                            with col3:
-                                if st.button("�📄 Raporları Gör", use_container_width=True, key="quick_to_reports"):
-                                    st.session_state.page = "rapor"
-                                    st.rerun()
-                        else:
-                            st.error("❌ Hızlı işlem hatası:")
-                            st.code(result.stderr)
-                            
-                            # Hata durumunda yardım
-                            with st.expander("🆘 Sorun giderme önerileri"):
-                                st.markdown("""
-                                **Olası çözümler:**
-                                - Dosyanın gerçekten Excel formatında (.xls/.xlsx) olduğunu kontrol edin
-                                - Dosyanın bozuk olmadığını doğrulayın
-                                - Mevcut dosyalar bölümünden farklı bir dosya deneyin
-                                - Dosyanın bozuk olmadığını Excel'de açarak kontrol edin
-                                """)
-                            
-                except Exception as e:
-                    st.error(f"❌ İşlem hatası: {e}")
         
         # Tam analiz seçeneği
         with st.expander("🔧 Gelişmiş Seçenekler"):
