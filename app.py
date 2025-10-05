@@ -911,16 +911,33 @@ def get_raw_files():
     return excel_files
 
 
-def run_command(command):
-    """Terminal komutu çalıştır ve çıktıyı döndür"""
-    result = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        cwd=ROOT_DIR,
-    )
-    
-    return result
+def run_command(command, timeout=300):
+    """Terminal komutu çalıştır ve çıktıyı döndür - Timeout eklenmiş"""
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            cwd=ROOT_DIR,
+            timeout=timeout  # 5 dakika timeout
+        )
+        return result
+    except subprocess.TimeoutExpired:
+        # Timeout durumu
+        class TimeoutResult:
+            def __init__(self):
+                self.returncode = -1
+                self.stdout = ""
+                self.stderr = f"⏱️ İşlem {timeout} saniye içinde tamamlanamadı (timeout)"
+        return TimeoutResult()
+    except Exception as e:
+        # Diğer hatalar
+        class ErrorResult:
+            def __init__(self, error):
+                self.returncode = -2
+                self.stdout = ""
+                self.stderr = f"🔥 Komut çalıştırma hatası: {str(error)}"
+        return ErrorResult(e)
 
 
 def process_daily_data(file_path, unique_id=None):
@@ -938,44 +955,32 @@ def process_daily_data(file_path, unique_id=None):
         if not file_path.exists():
             raise FileNotFoundError(f"Dosya bulunamadı: {file_path}")
         
-        # ANA SİSTEMİ ÇALIŞTIR: python main.py --gunluk-islem dosya_yolu
+        # YENİ YAKLAŞIM: Direkt Python modüllerini çağır (subprocess yerine - daha hızlı!)
         try:
-            import subprocess
-            import sys
+            # Modülleri import et
+            ISLENMIŞ_VERI_DIZIN, RAPOR_DIZIN, HAM_VERI_DIZIN, config_loaded = load_config()
+            if not config_loaded:
+                raise ImportError("Config yüklenemedi")
             
-            # Tam python path kullan (Streamlit Cloud uyumluluğu)
-            python_path = sys.executable
-            command = [python_path, "main.py", "--gunluk-islem", str(file_path)]
-            if unique_id:
-                command += ["--unique-id", unique_id]
+            VeriIsleme, NakilAnalizcisi = load_processors()
             
-            result = run_command(command)
+            # Veri işleme
+            isleyici = VeriIsleme()
+            gunluk_sonuc = isleyici.gunluk_islem(str(file_path), unique_id=unique_id)
+            
+            # Başarılı sonuç döndür
+            class SuccessResult:
+                def __init__(self):
+                    self.returncode = 0
+                    self.stdout = f"✅ Veri işleme başarılı: {gunluk_sonuc.get('işlenen_satir_sayisi', 0)} satır işlendi"
+                    self.stderr = ""
+            
+            result = SuccessResult()
             
             # HAFIZA OPTİMİZASYONU: İşlem sonrası temizlik
             gc.collect()
             
-            # DEBUG: gerçek çıktıyı göster
-            if result.returncode != 0:
-                # Hata durumunda gerçek çıktıyı döndür
-                class DebugResult:
-                    def __init__(self, stdout, stderr, returncode):
-                        self.returncode = returncode
-                        self.stdout = f"""❌ DEBUG: Ana sistem çalışmadı!
-
-🔧 Komut: {' '.join(command)}
-📊 Return code: {returncode}
-
-📝 STDOUT:
-{stdout}
-
-❌ STDERR:  
-{stderr}
-
-💡 Fallback sisteme geçiliyor..."""
-                        self.stderr = stderr
-                
-                return DebugResult(result.stdout, result.stderr, result.returncode)
-            
+            # Başarılı dönüş
             if result.returncode == 0:
                 # ANA SİSTEM BAŞARILI - Tüm analizler tamamlandı
                 class SuccessResult:
@@ -1347,12 +1352,23 @@ def analiz_sayfasi():
                 status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
                 progress_bar.progress(25)
                 
+                # Debug: Komut bilgisi
+                with st.expander("🔧 İşlem Detayları (Debug)", expanded=False):
+                    st.code(f"""
+Dosya: {save_path}
+Unique ID: {unique_id}
+Çalışma Dizini: {ROOT_DIR}
+Python: {sys.executable}
+                    """)
+                
                 try:
-                    result = process_daily_data(str(save_path), unique_id=unique_id)
+                    with st.spinner("⏳ Excel verisi işleniyor... (bu 1-2 dakika sürebilir)"):
+                        result = process_daily_data(str(save_path), unique_id=unique_id)
                 except Exception as e:
                     st.error(f"❌ Beklenmeyen hata: {str(e)}")
                     import traceback
                     st.code(traceback.format_exc())
+                    st.warning("💡 **Sorun giderme önerileri:**\n- Dosya boyutu çok büyük olabilir (max 200MB)\n- Streamlit Cloud hafıza limiti aşılmış olabilir\n- Excel dosyası bozuk olabilir")
                     return
                 
                 if result.returncode != 0:
