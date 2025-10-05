@@ -233,64 +233,42 @@ def configure_page():
             border: 1px solid #444 !important;
         }
         
-        /* Selectbox kapsamlı gece modu - KOYU YAZI */
+        /* Selectbox kapsamlı gece modu */
         .stSelectbox > div > div > select {
-            background-color: #F0F0F0 !important;
-            color: #333333 !important;
-            border: 1px solid #CCCCCC !important;
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
         }
         
         .stSelectbox select {
-            background-color: #F0F0F0 !important;
-            color: #333333 !important;
-            border: 1px solid #CCCCCC !important;
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
+            border: 1px solid #4A4A4A !important;
         }
         
         .stSelectbox option {
-            background-color: #FFFFFF !important;
-            color: #333333 !important;
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
         }
         
         div[data-testid="stSelectbox"] select {
-            background-color: #F0F0F0 !important;
-            color: #333333 !important;
-            border: 1px solid #CCCCCC !important;
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
+            border: 1px solid #4A4A4A !important;
         }
         
         div[data-testid="stSelectbox"] option {
-            background-color: #FFFFFF !important;
-            color: #333333 !important;
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
         }
         
-        /* Selectbox dropdown styling - AÇIK ARKAPLAN */
+        /* Selectbox dropdown styling */
         [data-baseweb="select"] {
-            background-color: #F0F0F0 !important;
+            background-color: #2E4057 !important;
         }
         
         [data-baseweb="select"] * {
-            background-color: #FFFFFF !important;
-            color: #333333 !important;
-        }
-        
-        /* Dropdown menü içeriği */
-        [data-baseweb="popover"] {
-            background-color: #FFFFFF !important;
-        }
-        
-        [data-baseweb="popover"] * {
-            background-color: #FFFFFF !important;
-            color: #333333 !important;
-        }
-        
-        /* Select dropdown option'ları */
-        [role="option"] {
-            background-color: #FFFFFF !important;
-            color: #333333 !important;
-        }
-        
-        [role="option"]:hover {
-            background-color: #E3F2FD !important;
-            color: #333333 !important;
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
         }
         
         /* File uploader gece modu - KAPSAMLI */
