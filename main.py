@@ -74,12 +74,13 @@ def eski_verileri_temizle() -> None:
         print(f"⚠️  Eski veri temizleme hatası: {e}")
 
 
-def gunluk_islem_yap(excel_dosya: str) -> None:
+def gunluk_islem_yap(excel_dosya: str, unique_id: str = None) -> None:
     """
     Günlük veri işleme operasyonu
 
     Args:
         excel_dosya: İşlenecek Excel dosyasının yolu
+        unique_id: Benzersiz işlem kimliği (opsiyonel)
     """
     try:
         logger.info(f"Günlük işlem başlatılıyor: {excel_dosya}")
@@ -88,7 +89,7 @@ def gunluk_islem_yap(excel_dosya: str) -> None:
         isleyici = VeriIsleme()
 
         # Günlük işlemi gerçekleştir
-        sonuc = isleyici.gunluk_islem(excel_dosya)
+        sonuc = isleyici.gunluk_islem(excel_dosya, unique_id=unique_id)
 
         print("✅ Günlük işlem başarıyla tamamlandı!")
         print(f"📊 İşlenen satır sayısı: {sonuc['işlenen_satir_sayisi']}")
@@ -97,7 +98,7 @@ def gunluk_islem_yap(excel_dosya: str) -> None:
         # Her zaman günlük rapor oluştur
         print("\n🔄 Günlük analiz ve PDF raporu oluşturuluyor...")
         gunluk_tarih = datetime.now().strftime("%Y-%m-%d")
-        rapor_sonuc = gunluk_nakil_analizi_yap(gun_tarihi=gunluk_tarih, gun_tipi="bugun")
+        rapor_sonuc = gunluk_nakil_analizi_yap(gun_tarihi=gunluk_tarih, gun_tipi="bugun", unique_id=unique_id)
         
         if rapor_sonuc and rapor_sonuc.get("pdf_raporu"):
             print(f"� Günlük PDF raporu oluşturuldu: {rapor_sonuc['pdf_raporu']}")
@@ -663,14 +664,17 @@ def main():
         default="dun",
         help="Analiz tipi",
     )
+    parser.add_argument(
+        "--unique-id", type=str, help="Benzersiz işlem/rapor kimliği"
+    )
 
     args = parser.parse_args()
 
     try:
         if args.gunluk_islem:
-            gunluk_islem_yap(args.gunluk_islem)
+            gunluk_islem_yap(args.gunluk_islem, unique_id=args.unique_id)
         elif args.analiz:
-            gunluk_nakil_analizi_yap(args.analiz, args.gun_tipi)
+            gunluk_nakil_analizi_yap(args.analiz, args.gun_tipi, unique_id=args.unique_id)
         else:
             # Parametre olmadan çalıştırıldıysa console menüyü başlat
             console_menu()
