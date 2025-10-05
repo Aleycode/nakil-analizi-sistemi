@@ -58,14 +58,6 @@ def configure_page():
         }
     )
     
-    # HAFIZA OPTİMİZASYONU: Eski verileri temizle
-    if 'processed_files' not in st.session_state:
-        st.session_state.processed_files = []
-    
-    # Maksimum 5 işlem tut, eskilerini sil
-    if len(st.session_state.processed_files) > 5:
-        st.session_state.processed_files = st.session_state.processed_files[-5:]
-    
     # Streamlit stil düzenlemeleri
     hide_streamlit_style = """
     <style>
@@ -916,10 +908,6 @@ def process_daily_data(file_path, unique_id=None):
     try:
         import pandas as pd
         from pathlib import Path
-        import gc  # Garbage collector - hafıza temizliği
-        
-        # HAFIZA OPTİMİZASYONU: İşlem öncesi temizlik
-        gc.collect()
         
         # Dosya yolu kontrolü
         file_path = Path(file_path)
@@ -934,13 +922,7 @@ def process_daily_data(file_path, unique_id=None):
             # Tam python path kullan (Streamlit Cloud uyumluluğu)
             python_path = sys.executable
             command = [python_path, "main.py", "--gunluk-islem", str(file_path)]
-            if unique_id:
-                command += ["--unique-id", unique_id]
-            
             result = run_command(command)
-            
-            # HAFIZA OPTİMİZASYONU: İşlem sonrası temizlik
-            gc.collect()
             
             # DEBUG: gerçek çıktıyı göster
             if result.returncode != 0:
@@ -1524,19 +1506,11 @@ def ana_sayfa():
                     status_text = st.empty()
                     status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
                     progress_bar.progress(25)
-                    
-                    try:
-                        result = process_daily_data(str(save_path), unique_id=unique_id)
-                    except Exception as e:
-                        st.error(f"❌ Beklenmeyen hata: {str(e)}")
-                        import traceback
-                        st.code(traceback.format_exc())
-                        return
+                    result = process_daily_data(str(save_path), unique_id=unique_id)
                     
                     if result.returncode != 0:
                         st.error("❌ Veri işleme hatası!")
-                        with st.expander("Hata Detayları", expanded=True):
-                            st.code(result.stderr)
+                        st.code(result.stderr)
                     else:
                         progress_bar.progress(50)
                         st.success("✅ Veri başarıyla işlendi!")
