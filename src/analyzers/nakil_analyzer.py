@@ -336,6 +336,11 @@ class NakilAnalizcisi:
             self.grafik_olusturucu._rapor_dizin_override = None
 
             logger.info(f"Kapsamlı analiz tamamlandı: {rapor_dosya}")
+            
+            # Başarı durumunu ekle
+            rapor["durum"] = "basarili"
+            rapor["mesaj"] = "Analiz başarıyla tamamlandı"
+            
             return rapor
 
         except Exception as e:
