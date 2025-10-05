@@ -4,7 +4,6 @@ Ana nakil analizcisi - Modüler koordinatör sınıf
 
 import logging
 import json
-import pandas as pd
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any
