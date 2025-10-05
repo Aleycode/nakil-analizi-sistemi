@@ -1316,7 +1316,20 @@ def analiz_sayfasi():
     if uploaded_file is not None:
         st.success(f"✅ Dosya yüklendi: **{uploaded_file.name}** ({uploaded_file.size / 1024:.1f} KB)")
         
-        if st.button("⚡ Hızlı İşle (Veri İşle + Analiz + PDF Oluştur)", type="primary", use_container_width=True):
+        # İki sütunlu düzen: Buton + İpucu
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            start_analysis = st.button(
+                "🚀 Nakil Analizi Yap", 
+                type="primary", 
+                use_container_width=True,
+                help="Excel verisini işler, nakil analizini yapar ve PDF raporu oluşturur"
+            )
+        with col2:
+            if st.button("❌ İptal", use_container_width=True):
+                st.rerun()
+        
+        if start_analysis:
             try:
                 import hashlib
                 now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1362,8 +1375,8 @@ def analiz_sayfasi():
                     
                     if analiz_result.returncode == 0:
                         st.balloons()
-                        st.success("� Tüm işlemler tamamlandı! PDF raporunuz hazır.")
-                        st.info("📄 Aşağıdaki 'Rapor Arşivi' bölümünden raporunuzu görüntüleyebilirsiniz.")
+                        st.success("🎉 Nakil analizi tamamlandı!")
+                        st.info("📊 **Detayları görüntülemek için:** Aşağıdaki \"Rapor Arşivi\" bölümünden raporunuzu inceleyebilirsiniz.")
                         # Sayfayı yenile - yeni rapor görünsün
                         st.rerun()
                     else:
