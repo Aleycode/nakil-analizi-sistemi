@@ -1274,17 +1274,115 @@ def show_statistics(date_or_folder):
 
 
 def analiz_sayfasi():
-    """Analiz sayfası içeriği"""
-    st.markdown("<h1 class='main-header'>Nakil Verileri Analizi</h1>", unsafe_allow_html=True)
+    """Nakil Analizi Sayfası - Ana sayfa + Analiz birleşik"""
+    st.markdown("<h1 class='main-header'>Nakil Z Raporu Analiz Sistemi</h1>", unsafe_allow_html=True)
+    
+    # Sağlık Bakanlığı logosu
+    logo_path = Path("assets/logo.png")
+    if logo_path.exists():
+        st.markdown("""
+        <style>
+        .centered-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .centered-logo img {
+            max-width: 250px;
+            height: auto;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        with open(logo_path, "rb") as f:
+            logo_data = base64.b64encode(f.read()).decode()
+        
+        st.markdown(f"""
+        <div class="centered-logo">
+            <img src="data:image/png;base64,{logo_data}" alt="Sağlık Bakanlığı Logo">
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # === YENİ RAPOR YÜKLEME BÖLÜMÜ ===
+    st.markdown("### 📤 Yeni Nakil Raporu Yükle")
+    
+    uploaded_file = st.file_uploader(
+        "Nakil Z Raporu Excel dosyasını (.xls/.xlsx) seçin:",
+        type=["xls", "xlsx"],
+        help="Sağlık Bakanlığı'ndan aldığınız Nakil Vaka Talepleri Raporu dosyasını yükleyin"
+    )
+    
+    if uploaded_file is not None:
+        st.success(f"✅ Dosya yüklendi: **{uploaded_file.name}** ({uploaded_file.size / 1024:.1f} KB)")
+        
+        if st.button("⚡ Hızlı İşle (Veri İşle + Analiz + PDF Oluştur)", type="primary", use_container_width=True):
+            try:
+                import hashlib
+                now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+                file_hash = hashlib.md5(uploaded_file.getvalue()).hexdigest()[:8]
+                unique_id = f"{now_str}_{file_hash}"
+                
+                save_path = DATA_RAW_DIR / f"{unique_id}_{uploaded_file.name}"
+                DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
+                
+                with open(save_path, "wb") as f:
+                    f.write(uploaded_file.getvalue())
+                
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
+                progress_bar.progress(25)
+                
+                try:
+                    result = process_daily_data(str(save_path), unique_id=unique_id)
+                except Exception as e:
+                    st.error(f"❌ Beklenmeyen hata: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
+                    return
+                
+                if result.returncode != 0:
+                    st.error("❌ Veri işleme hatası!")
+                    with st.expander("Hata Detayları", expanded=True):
+                        st.code(result.stderr)
+                else:
+                    progress_bar.progress(50)
+                    st.success("✅ Veri başarıyla işlendi!")
+                    
+                    status_text.text("📈 Adım 2/2: Analiz yapılıyor ve PDF oluşturuluyor...")
+                    progress_bar.progress(75)
+                    
+                    gun_tarihi = datetime.now().strftime("%Y-%m-%d")
+                    command = ["python", "main.py", "--analiz", gun_tarihi, "--unique-id", unique_id]
+                    analiz_result = run_command(command)
+                    
+                    progress_bar.progress(100)
+                    status_text.text("")
+                    
+                    if analiz_result.returncode == 0:
+                        st.balloons()
+                        st.success("� Tüm işlemler tamamlandı! PDF raporunuz hazır.")
+                        st.info("📄 Aşağıdaki 'Rapor Arşivi' bölümünden raporunuzu görüntüleyebilirsiniz.")
+                        # Sayfayı yenile - yeni rapor görünsün
+                        st.rerun()
+                    else:
+                        st.error("❌ Analiz hatası!")
+                        st.code(analiz_result.stderr)
+                
+            except Exception as e:
+                st.error(f"❌ İşlem hatası: {e}")
+    
+    st.markdown("---")
+    
+    # === RAPOR ARŞİVİ BÖLÜMÜ ===
+    st.markdown("### 📅 Rapor Arşivi")
     
     # Mevcut raporları al (tarih + unique_id)
     reports = get_existing_reports()
     
     if not reports:
-        st.warning("⚠️ Henüz işlenmiş veri bulunamadı. Önce Excel dosyası yükleyip işlemelisiniz.")
-        if st.button("🏠 Ana Sayfaya Dön (Excel Yükle)"):
-            st.session_state.page = "ana_sayfa"
-            st.rerun()
+        st.info("ℹ️ Henüz işlenmiş rapor bulunamadı. Yukarıdan Excel dosyası yükleyip işleyebilirsiniz.")
         return
     
     # Rapor arşivi gösterimi
@@ -1472,217 +1570,14 @@ def rapor_sayfasi():
             st.error(f"❌ {selected_date} tarihli rapor klasörü bulunamadı.")
 
 
-def ana_sayfa():
-    """Ana sayfa içeriği"""
-    st.markdown("<h1 class='main-header'>Nakil Z Raporu Analiz Sistemi</h1>", unsafe_allow_html=True)
-    
-    # Sağlık Bakanlığı logosu - tam ortaya yerleştir
-    logo_path = Path("assets/logo.png")
-    if logo_path.exists():
-        # Logo için özel CSS stil - küçültülmüş versiyon
-        st.markdown("""
-        <style>
-        .centered-logo {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 15px 0;
-        }
-        .centered-logo img {
-            max-width: 250px;
-            height: auto;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        # Logo base64 olarak encode et ve göster
-        with open(logo_path, "rb") as f:
-            logo_data = base64.b64encode(f.read()).decode()
-        
-        st.markdown(f"""
-        <div class="centered-logo">
-            <img src="data:image/png;base64,{logo_data}" alt="Sağlık Bakanlığı Logo">
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Proje açıklaması
-    st.markdown("""
-    <div class="info-text">
-    <p>Bu uygulama, hastane nakil verilerini analiz ederek kapsamlı raporlar oluşturur. Veri analizi, görselleştirme ve 
-    PDF rapor oluşturma özellikleriyle nakil süreçlerinin yönetimi ve analizi kolaylaştırılır.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Rapor yükleme bölümü ekle
-    st.markdown("### 📤 Nakil Raporu Yükle")
-    
-    uploaded_file = st.file_uploader(
-        "Nakil Z Raporu Excel dosyasını (.xls) seçin ve yükleyin:",
-        type=["xls", "xlsx"],
-        help="Sağlık Bakanlığı'ndan aldığınız Nakil Vaka Talepleri Raporu dosyasını yükleyin"
-    )
-    
-    if uploaded_file is not None:
-        # Dosya bilgilerini göster
-        st.success(f"✅ Dosya yüklendi: **{uploaded_file.name}**")
-        st.info(f"📊 Dosya boyutu: {uploaded_file.size / 1024:.1f} KB")
-        
-        # Dosyayı işle - TEK BUTON HERŞEYİ YAP
-        if st.button("⚡ Hızlı İşle (Veri İşle + Analiz + PDF Oluştur)", type="primary", use_container_width=True):
-                # Önce dosyayı kaydet
-                try:
-                    import hashlib
-                    now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    file_hash = hashlib.md5(uploaded_file.getvalue()).hexdigest()[:8]
-                    unique_id = f"{now_str}_{file_hash}"
-                    
-                    save_path = DATA_RAW_DIR / f"{unique_id}_{uploaded_file.name}"
-                    DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
-                    
-                    with open(save_path, "wb") as f:
-                        f.write(uploaded_file.getvalue())
-                    
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
-                    status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
-                    progress_bar.progress(25)
-                    
-                    try:
-                        result = process_daily_data(str(save_path), unique_id=unique_id)
-                    except Exception as e:
-                        st.error(f"❌ Beklenmeyen hata: {str(e)}")
-                        import traceback
-                        st.code(traceback.format_exc())
-                        return
-                    
-                    if result.returncode != 0:
-                        st.error("❌ Veri işleme hatası!")
-                        with st.expander("Hata Detayları", expanded=True):
-                            st.code(result.stderr)
-                    else:
-                        progress_bar.progress(50)
-                        st.success("✅ Veri başarıyla işlendi!")
-                        
-                        status_text.text("📈 Adım 2/2: Analiz yapılıyor ve PDF oluşturuluyor...")
-                        progress_bar.progress(75)
-                        
-                        gun_tarihi = datetime.now().strftime("%Y-%m-%d")
-                        command = ["python", "main.py", "--analiz", gun_tarihi, "--unique-id", unique_id]
-                        analiz_result = run_command(command)
-                        
-                        progress_bar.progress(100)
-                        status_text.text("")
-                        
-                        if analiz_result.returncode == 0:
-                            st.balloons()
-                            st.success("🎉 Tüm işlemler tamamlandı! PDF raporunuz hazır.")
-                            st.info("� 'Rapor Arşivi' sayfasından raporunuzu görüntüleyebilir ve indirebilirsiniz.")
-                            if st.button("📊 Raporumu Görüntüle", use_container_width=True):
-                                st.session_state.page = "rapor"
-                                st.rerun()
-                        else:
-                            st.error("❌ Analiz hatası!")
-                            st.code(analiz_result.stderr)
-                    
-                except Exception as e:
-                    st.error(f"❌ İşlem hatası: {e}")
-        
-        # Tam analiz seçeneği
-        with st.expander("🔧 Gelişmiş Seçenekler"):
-            st.markdown("**Tam Analiz:** Excel dosyasını işler + otomatik analiz yapar + PDF raporu oluşturur (daha yavaş)")
-            if st.button("🚀 Tam Analiz Yap", use_container_width=True):
-                # Önce dosyayı kaydet
-                try:
-                    save_path = DATA_RAW_DIR / uploaded_file.name
-                    DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
-                    
-                    with open(save_path, "wb") as f:
-                        f.write(uploaded_file.getvalue())
-                    
-                    # Tam analiz
-                    with st.spinner("🔄 Tam analiz yapılıyor... Bu 2-5 dakika sürebilir"):
-                        result = process_daily_data(str(save_path))
-                        if result.returncode == 0:
-                            st.success("🎉 Tam analiz başarılı!")
-                            st.info(result.stdout)
-                            st.balloons()
-                            
-                            # Yönlendirme
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button("📊 Analizi Görüntüle", use_container_width=True, key="full_to_analysis"):
-                                    st.session_state.page = "analiz"
-                                    st.rerun()
-                            with col2:
-                                if st.button("📄 PDF Raporlarını Gör", use_container_width=True, key="full_to_reports"):
-                                    st.session_state.page = "rapor"
-                                    st.rerun()
-                        else:
-                            st.error("❌ Tam analiz hatası:")
-                            st.code(result.stderr)
-                            
-                except Exception as e:
-                    st.error(f"❌ İşlem hatası: {e}")
-    
-    st.markdown("---")
-    
-    # Basit sistem durumu
-    st.markdown("###  Sistem Durumu")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("#### 📁 Ham Veri")
-        excel_count = len(get_raw_files())
-        st.metric("Excel Dosyaları", excel_count)
-    
-    with col2:
-        st.markdown("#### 📊 İşlenmiş Veri")  
-        processed_dir = ROOT_DIR / "data" / "processed"
-        processed_count = 0
-        if processed_dir.exists():
-            processed_dirs = [d for d in processed_dir.iterdir() if d.is_dir()]
-            processed_count = len(processed_dirs)
-        st.metric("İşlenmiş Veri", processed_count)
-    
-    with col3:
-        st.markdown("#### 📑 Raporlar")
-        report_days = len(get_existing_dates())
-        st.metric("Rapor Günleri", report_days)
-    
-    # Son raporlar
-    st.markdown("### 📊 Son Raporlar")
-    dates = get_existing_dates()
-    if dates:
-        latest_date = dates[0]
-        report_folder = DATA_REPORTS_DIR / latest_date
-        if report_folder.exists():
-            st.success(f"✅ En son rapor tarihi: {latest_date}")
-            
-            # Son rapordan bir grafik göster
-            png_files = list(report_folder.glob("*.png"))
-            if png_files:
-                sample_graph = png_files[0]
-                with st.expander("Son rapor örneği"):
-                    st.image(str(sample_graph), caption=f"{latest_date} - {sample_graph.name}", use_container_width=True)
-            
-            # Rapora git butonu
-            if st.button("Son Raporu Görüntüle"):
-                st.session_state.page = "rapor"
-                st.session_state.selected_date = latest_date
-                st.rerun()
-        else:
-            st.warning("⚠️ Son rapor klasörü bulunamadı.")
-    else:
-        st.warning("⚠️ Henüz rapor oluşturulmamış.")
+# ana_sayfa() fonksiyonu kaldırıldı - artık analiz_sayfasi() ile birleştirildi
 
 
 def main():
-    """Ana fonksiyon"""
     configure_page()
     
     # PERFORMANS: Sayfa değiştiğinde gereksiz session_state'leri temizle
-    current_page = st.session_state.get("page", "ana_sayfa")
+    current_page = st.session_state.get("page", "analiz")  # Varsayılan: Nakil Analizi
     
     # Sayfa değişimi kontrolü
     if "last_page" not in st.session_state:
@@ -1695,22 +1590,28 @@ def main():
             del st.session_state[key]
         st.session_state.last_page = current_page
     
-    # Sidebar kontrolü - eğer görünmüyorsa ana sayfada menü göster
-    sidebar_visible = True
-    
-    # Sidebar menüsü
+    # Sidebar menüsü - Sadece 2 seçenek
     with st.sidebar:
         st.markdown("# 🏥 NAKİL ANALİZ SİSTEMİ")
         
         st.markdown("---")
         
         menu_options = {
-            "ana_sayfa": "🏠 Ana Sayfa",
             "analiz": "📊 Nakil Analizi",
             "rapor": "📄 Rapor Arşivi",
         }
         
-        selected_page = st.radio("📋 Menü Seçimi:", list(menu_options.values()), key="sidebar_menu")
+        # Varsayılan seçim belirleme
+        default_index = 0
+        if current_page in menu_options:
+            default_index = list(menu_options.keys()).index(current_page)
+        
+        selected_page = st.radio(
+            "📋 Menü Seçimi:", 
+            list(menu_options.values()), 
+            index=default_index,
+            key="sidebar_menu"
+        )
         
         # Sayfa seçimini state'e kaydet
         for key, value in menu_options.items():
@@ -1721,19 +1622,17 @@ def main():
         st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
     
     # Ana içerik - sayfa yönlendirmeleri
-    current_page = st.session_state.get("page", "ana_sayfa")
+    current_page = st.session_state.get("page", "analiz")
     
-    if current_page == "analiz":
-        analiz_sayfasi()
-    elif current_page == "rapor":
+    if current_page == "rapor":
         rapor_sayfasi()
-    else:  # Ana sayfa varsayılan
-        ana_sayfa()
+    else:  # Nakil Analizi varsayılan
+        analiz_sayfasi()
 
 
 if __name__ == "__main__":
-    # Session state başlat
+    # Session state başlat - Varsayılan sayfa: Nakil Analizi
     if "page" not in st.session_state:
-        st.session_state.page = "ana_sayfa"
+        st.session_state.page = "analiz"
     
     main()
