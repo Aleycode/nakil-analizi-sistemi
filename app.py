@@ -238,10 +238,10 @@ def configure_page():
             color: #FAFAFA !important;
         }
         
-        /* File uploader gece modu */
+        /* File uploader gece modu - KAPSAMLI */
         .stFileUploader > div {
             background-color: #2E4057 !important;
-            border: 2px dashed #4A4A4A !important;
+            border: 2px dashed #64B5F6 !important;
             border-radius: 10px !important;
         }
         
@@ -258,6 +258,68 @@ def configure_page():
         .stFileUploader button:hover {
             background-color: #64B5F6 !important;
             border: 1px solid #64B5F6 !important;
+        }
+        
+        /* File uploader detaylı styling */
+        div[data-testid="stFileUploader"] {
+            background-color: #2E4057 !important;
+            border: 2px dashed #64B5F6 !important;
+            border-radius: 10px !important;
+        }
+        
+        div[data-testid="stFileUploader"] * {
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stFileUploader"] label {
+            color: #FAFAFA !important;
+            font-weight: bold !important;
+        }
+        
+        div[data-testid="stFileUploader"] p {
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stFileUploader"] span {
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stFileUploader"] div {
+            background-color: transparent !important;
+            color: #FAFAFA !important;
+        }
+        
+        /* File uploader drag area */
+        .stFileUploader [data-testid="stFileUploaderDropzone"] {
+            background-color: #2E4057 !important;
+            border: 2px dashed #64B5F6 !important;
+            color: #FAFAFA !important;
+        }
+        
+        .stFileUploader [data-testid="stFileUploaderDropzone"] * {
+            color: #FAFAFA !important;
+        }
+        
+        /* File uploader inner text */
+        [data-testid="stFileUploaderDropzoneInstructions"] {
+            color: #FAFAFA !important;
+        }
+        
+        [data-testid="stFileUploaderDropzoneInstructions"] * {
+            color: #FAFAFA !important;
+        }
+        
+        /* Browse files button styling */
+        [data-testid="stFileUploaderBrowseFilesButton"] {
+            background-color: #64B5F6 !important;
+            color: #FFFFFF !important;
+            border: none !important;
+            border-radius: 5px !important;
+            font-weight: bold !important;
+        }
+        
+        [data-testid="stFileUploaderBrowseFilesButton"]:hover {
+            background-color: #42A5F5 !important;
         }
         
         /* Metrics gece modu */
