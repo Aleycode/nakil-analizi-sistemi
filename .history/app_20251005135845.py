@@ -335,21 +335,7 @@ def configure_page():
         [data-baseweb="select"] select {
             background-color: #FFFFFF !important;
             color: #000000 !important;
-            border: 2px solid #64B5F6 !important;
-            border-radius: 8px !important;
-            padding: 10px !important;
-            font-size: 16px !important;
-            box-shadow: 0 2px 4px rgba(100, 181, 246, 0.2) !important;
-            transition: all 0.3s ease !important;
-        }
-        
-        /* Selectbox hover efekti */
-        select:hover, 
-        .stSelectbox select:hover,
-        div[data-testid="stSelectbox"] select:hover,
-        [data-baseweb="select"] select:hover {
-            border: 2px solid #42A5F5 !important;
-            box-shadow: 0 4px 8px rgba(66, 165, 245, 0.3) !important;
+            border: 2px solid #CCCCCC !important;
         }
         
         /* Tüm option elementleri */
