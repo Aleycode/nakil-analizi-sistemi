@@ -47,10 +47,12 @@ class VeriIsleme:
             # Sütun adlarını standartlaştır (küçük harf, boşlukları temizle)
             df.columns = [str(col).strip().lower() for col in df.columns]
 
-            tarih_str = datetime.now().strftime("%Y%m%d")
             if unique_id:
-                gunluk_dizin = ISLENMIŞ_VERI_DIZIN / f"günlük_{tarih_str}_{unique_id}"
+                # unique_id zaten tarih içeriyor (20251005_143022_abc12345)
+                gunluk_dizin = ISLENMIŞ_VERI_DIZIN / f"günlük_{unique_id}"
             else:
+                # unique_id yoksa sadece tarih kullan
+                tarih_str = datetime.now().strftime("%Y%m%d")
                 gunluk_dizin = ISLENMIŞ_VERI_DIZIN / f"günlük_{tarih_str}"
             gunluk_dizin.mkdir(parents=True, exist_ok=True)
 

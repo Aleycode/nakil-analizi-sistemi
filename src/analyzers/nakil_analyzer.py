@@ -47,16 +47,23 @@ class NakilAnalizcisi:
             if unique_id:
                 # Unique_id'li günlük dosyayı oku
                 from ..core.config import ISLENMIŞ_VERI_DIZIN
-                tarih_str = gun_tarihi.replace("-", "")
-                gunluk_klasor = ISLENMIŞ_VERI_DIZIN / f"günlük_{tarih_str}_{unique_id}"
+                
+                # unique_id zaten tarih içeriyor (20251005_143022_abc12345 formatında)
+                # Bu yüzden sadece günlük_ prefix'i ve unique_id'yi kullan
+                tarih_str = unique_id.split("_")[0]  # İlk kısım tarih (20251005)
+                gunluk_klasor = ISLENMIŞ_VERI_DIZIN / f"günlük_{unique_id}"
                 gunluk_dosya = gunluk_klasor / "veriler.parquet"
+                
+                logger.info(f"Unique_id'li günlük dosya aranıyor: {gunluk_dosya}")
                 
                 if gunluk_dosya.exists():
                     logger.info(f"Unique_id'li günlük dosya okunuyor: {gunluk_dosya}")
                     df_gunluk = pd.read_parquet(gunluk_dosya)
                 else:
                     logger.error(f"Unique_id'li günlük dosya bulunamadı: {gunluk_dosya}")
-                    return {}
+                    logger.error(f"Aranan klasör: {gunluk_klasor}")
+                    logger.error(f"Klasör mevcut mu: {gunluk_klasor.exists()}")
+                    return {"durum": "hata", "mesaj": f"Günlük dosya bulunamadı: {gunluk_dosya}"}
                     
                 # Bu dosya zaten günlük filtreli, vaka tipi belirleme yap
                 df_gunluk = self.veri_isleme.vaka_tipi_belirle(df_gunluk, gun_tarihi)
