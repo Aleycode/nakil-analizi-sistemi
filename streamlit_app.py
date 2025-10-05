@@ -386,23 +386,55 @@ def file_uploader_section():
         st.success(f"✅ Dosya başarıyla yüklendi!")
 
         st.markdown("---")
-        st.markdown("### İşlem Seçin")
+        st.markdown("### 🚀 Hızlı İşlem")
 
-        if st.button("🔄 Günlük Veri İşle", use_container_width=True):
-            with st.spinner("Veri işleniyor... Bu işlem birkaç dakika sürebilir."):
-                # process_daily_data fonksiyonuna unique_id parametresi eklenmeli
-                result = process_daily_data(temp_path, unique_id=unique_id)
-                if result.returncode == 0:
-                    st.balloons()
-                    st.success("✅ Veri başarıyla işlendi!")
-                    with st.expander("İşlem Detayları", expanded=False):
-                        st.text(result.stdout)
-                    st.info("Şimdi 'Analiz' sekmesine geçerek raporunuzu oluşturabilirsiniz.")
-                else:
-                    st.error("❌ Veri işleme hatası!")
-                    with st.expander("Hata Detayları", expanded=True):
-                        st.text(result.stderr)
-                st.rerun()
+        if st.button("⚡ Hızlı İşle (Veri İşle + Analiz Yap + PDF Oluştur)", use_container_width=True, type="primary"):
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            # Adım 1: Veri işleme
+            status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
+            progress_bar.progress(25)
+            
+            result = process_daily_data(temp_path, unique_id=unique_id)
+            
+            if result.returncode != 0:
+                st.error("❌ Veri işleme hatası!")
+                with st.expander("Hata Detayları", expanded=True):
+                    st.text(result.stderr)
+                return
+            
+            progress_bar.progress(50)
+            st.success("✅ Veri başarıyla işlendi!")
+            
+            # Adım 2: Analiz ve PDF oluşturma
+            status_text.text("📈 Adım 2/2: Analiz yapılıyor ve PDF oluşturuluyor...")
+            progress_bar.progress(75)
+            
+            # Tarihi belirle (Excel'den veya bugünden)
+            gun_tarihi = datetime.now().strftime("%Y-%m-%d")
+            
+            # Analiz komutunu çalıştır (unique_id ile)
+            command = ["python", "main.py", "--analiz", gun_tarihi, "--unique-id", unique_id]
+            analiz_result = run_command(command)
+            
+            progress_bar.progress(100)
+            
+            if analiz_result.returncode == 0:
+                st.balloons()
+                st.success("🎉 Tüm işlemler tamamlandı! PDF raporunuz hazır.")
+                status_text.text("")
+                
+                st.info("📂 'Rapor Arşivi' sayfasından raporunuzu görüntüleyebilir ve indirebilirsiniz.")
+                
+                # Rapor arşivi sayfasına yönlendirme butonu
+                if st.button("📊 Raporumu Görüntüle", use_container_width=True):
+                    st.session_state.page = "rapor_arsivi"
+                    st.rerun()
+            else:
+                st.error("❌ Analiz hatası!")
+                with st.expander("Hata Detayları", expanded=True):
+                    st.text(analiz_result.stderr)
 
 def existing_files_section():
     """Mevcut Excel dosyaları bölümü"""
