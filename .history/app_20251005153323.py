@@ -1449,31 +1449,21 @@ def ana_sayfa():
                     with st.spinner("⚡ Excel dosyası hızla işleniyor..."):
                         result = process_simple_excel_fallback(save_path, "Hızlı işleme modu")
                         if result.returncode == 0:
-                            st.success("⚡ Hızlı işlem tamamlandı!")
+                            st.success("🎉 Veri işleme başarılı!")
                             st.info(result.stdout)
                             
                             # İleriye yönlendirme butonları
-                            col1, col2, col3 = st.columns(3)
+                            col1, col2 = st.columns(2)
                             with col1:
-                                if st.button("📊 Analiz Sayfasına Git", use_container_width=True, key="quick_to_analysis"):
+                                if st.button("📊 Analiz Yap", use_container_width=True, key="main_to_analysis"):
                                     st.session_state.page = "analiz"
                                     st.rerun()
                             with col2:
-                                if st.button("� Tam Analiz Yap", use_container_width=True, key="full_analysis"):
-                                    with st.spinner("🔄 Tam analiz yapılıyor... Bu biraz zaman alabilir"):
-                                        full_result = process_daily_data(str(save_path))
-                                        if full_result.returncode == 0:
-                                            st.success("🎉 Tam analiz tamamlandı!")
-                                            st.balloons()
-                                        else:
-                                            st.error("❌ Tam analiz hatası:")
-                                            st.code(full_result.stderr)
-                            with col3:
-                                if st.button("�📄 Raporları Gör", use_container_width=True, key="quick_to_reports"):
+                                if st.button("📄 Raporları Gör", use_container_width=True, key="main_to_reports"):
                                     st.session_state.page = "rapor"
                                     st.rerun()
                         else:
-                            st.error("❌ Hızlı işlem hatası:")
+                            st.error("❌ Veri işleme hatası:")
                             st.code(result.stderr)
                             
                             # Hata durumunda yardım
@@ -1485,43 +1475,6 @@ def ana_sayfa():
                                 - Mevcut dosyalar bölümünden farklı bir dosya deneyin
                                 - Dosyanın bozuk olmadığını Excel'de açarak kontrol edin
                                 """)
-                            
-                except Exception as e:
-                    st.error(f"❌ İşlem hatası: {e}")
-        
-        # Tam analiz seçeneği
-        with st.expander("🔧 Gelişmiş Seçenekler"):
-            st.markdown("**Tam Analiz:** Excel dosyasını işler + otomatik analiz yapar + PDF raporu oluşturur (daha yavaş)")
-            if st.button("🚀 Tam Analiz Yap", use_container_width=True):
-                # Önce dosyayı kaydet
-                try:
-                    save_path = DATA_RAW_DIR / uploaded_file.name
-                    DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
-                    
-                    with open(save_path, "wb") as f:
-                        f.write(uploaded_file.getvalue())
-                    
-                    # Tam analiz
-                    with st.spinner("🔄 Tam analiz yapılıyor... Bu 2-5 dakika sürebilir"):
-                        result = process_daily_data(str(save_path))
-                        if result.returncode == 0:
-                            st.success("🎉 Tam analiz başarılı!")
-                            st.info(result.stdout)
-                            st.balloons()
-                            
-                            # Yönlendirme
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button("📊 Analizi Görüntüle", use_container_width=True, key="full_to_analysis"):
-                                    st.session_state.page = "analiz"
-                                    st.rerun()
-                            with col2:
-                                if st.button("📄 PDF Raporlarını Gör", use_container_width=True, key="full_to_reports"):
-                                    st.session_state.page = "rapor"
-                                    st.rerun()
-                        else:
-                            st.error("❌ Tam analiz hatası:")
-                            st.code(result.stderr)
                             
                 except Exception as e:
                     st.error(f"❌ İşlem hatası: {e}")

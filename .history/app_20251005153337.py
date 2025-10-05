@@ -1488,43 +1488,6 @@ def ana_sayfa():
                             
                 except Exception as e:
                     st.error(f"❌ İşlem hatası: {e}")
-        
-        # Tam analiz seçeneği
-        with st.expander("🔧 Gelişmiş Seçenekler"):
-            st.markdown("**Tam Analiz:** Excel dosyasını işler + otomatik analiz yapar + PDF raporu oluşturur (daha yavaş)")
-            if st.button("🚀 Tam Analiz Yap", use_container_width=True):
-                # Önce dosyayı kaydet
-                try:
-                    save_path = DATA_RAW_DIR / uploaded_file.name
-                    DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
-                    
-                    with open(save_path, "wb") as f:
-                        f.write(uploaded_file.getvalue())
-                    
-                    # Tam analiz
-                    with st.spinner("🔄 Tam analiz yapılıyor... Bu 2-5 dakika sürebilir"):
-                        result = process_daily_data(str(save_path))
-                        if result.returncode == 0:
-                            st.success("🎉 Tam analiz başarılı!")
-                            st.info(result.stdout)
-                            st.balloons()
-                            
-                            # Yönlendirme
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button("📊 Analizi Görüntüle", use_container_width=True, key="full_to_analysis"):
-                                    st.session_state.page = "analiz"
-                                    st.rerun()
-                            with col2:
-                                if st.button("📄 PDF Raporlarını Gör", use_container_width=True, key="full_to_reports"):
-                                    st.session_state.page = "rapor"
-                                    st.rerun()
-                        else:
-                            st.error("❌ Tam analiz hatası:")
-                            st.code(result.stderr)
-                            
-                except Exception as e:
-                    st.error(f"❌ İşlem hatası: {e}")
     
     st.markdown("---")
     
