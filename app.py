@@ -1382,9 +1382,39 @@ Python: {sys.executable}
                     status_text.text("📈 Adım 2/2: Analiz yapılıyor ve PDF oluşturuluyor...")
                     progress_bar.progress(75)
                     
-                    gun_tarihi = datetime.now().strftime("%Y-%m-%d")
-                    command = ["python", "main.py", "--analiz", gun_tarihi, "--unique-id", unique_id]
-                    analiz_result = run_command(command)
+                    # Direkt analiz çağrısı (subprocess yerine)
+                    try:
+                        gun_tarihi = datetime.now().strftime("%Y-%m-%d")
+                        
+                        # NakilAnalizcisi'ni çağır
+                        ISLENMIŞ_VERI_DIZIN, RAPOR_DIZIN, HAM_VERI_DIZIN, config_loaded = load_config()
+                        VeriIsleme, NakilAnalizcisi = load_processors()
+                        
+                        analizci = NakilAnalizcisi()
+                        rapor_sonuc = analizci.kapsamli_gunluk_analiz(
+                            gun_tarihi=gun_tarihi,
+                            gun_tipi="bugun",
+                            unique_id=unique_id
+                        )
+                        
+                        # Başarılı sonuç
+                        class AnalysisResult:
+                            def __init__(self, success):
+                                self.returncode = 0 if success else 1
+                                self.stdout = "Analiz tamamlandı" if success else ""
+                                self.stderr = "" if success else "Analiz başarısız"
+                        
+                        analiz_result = AnalysisResult(rapor_sonuc.get("durum") == "basarili" if rapor_sonuc else False)
+                        
+                    except Exception as analiz_error:
+                        # Analiz hatası
+                        class AnalysisErrorResult:
+                            def __init__(self, error):
+                                self.returncode = 1
+                                self.stdout = ""
+                                self.stderr = f"Analiz sırasında hata: {str(error)}"
+                        
+                        analiz_result = AnalysisErrorResult(analiz_error)
                     
                     progress_bar.progress(100)
                     status_text.text("")
@@ -1397,10 +1427,37 @@ Python: {sys.executable}
                         st.rerun()
                     else:
                         st.error("❌ Analiz hatası!")
-                        st.code(analiz_result.stderr)
+                        
+                        # Detaylı hata mesajı
+                        with st.expander("🔍 Hata Detayları", expanded=True):
+                            st.markdown(f"""
+                            **Return Code:** `{analiz_result.returncode}`
+                            
+                            **Stderr:**
+                            """)
+                            if analiz_result.stderr:
+                                st.code(analiz_result.stderr)
+                            else:
+                                st.warning("Stderr boş - hata mesajı alınamadı")
+                            
+                            st.markdown("**Stdout:**")
+                            if analiz_result.stdout:
+                                st.code(analiz_result.stdout)
+                            else:
+                                st.info("Stdout boş")
+                            
+                            st.markdown("**Olası Sebepler:**")
+                            st.markdown("""
+                            1. `main.py --analiz` komutu çalışmadı
+                            2. Veri işleme başarılı ama analiz aşaması başarısız
+                            3. Python modüllerinde import hatası
+                            4. Parquet dosyası bulunamadı veya okunamadı
+                            """)
                 
             except Exception as e:
                 st.error(f"❌ İşlem hatası: {e}")
+                import traceback
+                st.code(traceback.format_exc())
     
     st.markdown("---")
     
