@@ -233,7 +233,40 @@ def configure_page():
             border: 1px solid #444 !important;
         }
         
+        /* Selectbox kapsamlı gece modu */
         .stSelectbox > div > div > select {
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
+        }
+        
+        .stSelectbox select {
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
+            border: 1px solid #4A4A4A !important;
+        }
+        
+        .stSelectbox option {
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
+        }
+        
+        div[data-testid="stSelectbox"] select {
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
+            border: 1px solid #4A4A4A !important;
+        }
+        
+        div[data-testid="stSelectbox"] option {
+            background-color: #2E4057 !important;
+            color: #FAFAFA !important;
+        }
+        
+        /* Selectbox dropdown styling */
+        [data-baseweb="select"] {
+            background-color: #2E4057 !important;
+        }
+        
+        [data-baseweb="select"] * {
             background-color: #2E4057 !important;
             color: #FAFAFA !important;
         }
@@ -1107,6 +1140,7 @@ def analiz_sayfasi():
         return
     
     # Tarih seçimi
+    st.info("ℹ️ **Analiz Tarihi Nedir?** Bu tarihler, daha önce Excel veri dosyalarını yüklediğiniz günleri gösterir. Her tarih için ayrı analiz sonuçları saklanır.")
     selected_date = st.selectbox("Analiz tarihi seçin:", dates)
     
     if selected_date:
