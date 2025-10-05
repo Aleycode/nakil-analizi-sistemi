@@ -832,72 +832,77 @@ def configure_page():
     )
 
 
-@st.cache_data(ttl=60)  # 60 saniye cache - yeni raporlar hemen görünsün
+@st.cache_data(ttl=300, show_spinner=False)  # 5 dakika cache - sayfa geçişlerinde kasma önler
 def get_existing_dates():
     """Mevcut rapor tarihlerini al (eski fonksiyon - geriye dönük uyumluluk için)"""
     dates = []
     
-    # reports dizinini kontrol et
+    # reports dizinini kontrol et - SADECE ana dizin okuma, recursive değil
     if DATA_REPORTS_DIR.exists():
-        for item in DATA_REPORTS_DIR.iterdir():
-            if item.is_dir():
-                if len(item.name) == 10 and item.name.count("-") == 2:  # YYYY-MM-DD formatı
-                    dates.append(item.name)
+        try:
+            for item in DATA_REPORTS_DIR.iterdir():
+                if item.is_dir():
+                    if len(item.name) == 10 and item.name.count("-") == 2:  # YYYY-MM-DD formatı
+                        dates.append(item.name)
+        except (PermissionError, OSError):
+            pass  # Hata durumunda sessizce devam et
     
-    # işlenmiş veri dizinini kontrol et - local path kullan
-    processed_dir = ROOT_DIR / "data" / "processed"
-    if processed_dir.exists():
-        for item in processed_dir.iterdir():
-            if item.is_dir() and item.name.startswith("günlük_"):
-                tarih_str = item.name.replace("günlük_", "")
-                if len(tarih_str) == 8:  # YYYYMMDD formatı
-                    try:
-                        tarih_obj = datetime.strptime(tarih_str, "%Y%m%d")
-                        formatted_date = tarih_obj.strftime("%Y-%m-%d")
-                        if formatted_date not in dates:
-                            dates.append(formatted_date)
-                    except ValueError:
-                        pass
+    # işlenmiş veri dizinini kontrol et - SADECE gerekirse (performans için)
+    # processed_dir taramasını atla - zaten reports dizininde PDF varsa yeter
+    if len(dates) < 5:  # SADECE çok az rapor varsa processed'a bak
+        processed_dir = ROOT_DIR / "data" / "processed"
+        if processed_dir.exists():
+            try:
+                for item in processed_dir.iterdir():
+                    if item.is_dir() and item.name.startswith("günlük_"):
+                        tarih_str = item.name.replace("günlük_", "")
+                        if len(tarih_str) == 8:  # YYYYMMDD formatı
+                            try:
+                                tarih_obj = datetime.strptime(tarih_str, "%Y%m%d")
+                                formatted_date = tarih_obj.strftime("%Y-%m-%d")
+                                if formatted_date not in dates:
+                                    dates.append(formatted_date)
+                            except ValueError:
+                                pass
+            except (PermissionError, OSError):
+                pass
     
     # Tarihleri ters sırala (en yeni önce)
     dates.sort(reverse=True)
     return dates
 
 
-@st.cache_data(ttl=60)  # 60 saniye cache - yeni raporlar hemen görünsün
+@st.cache_data(ttl=300, show_spinner=False)  # 5 dakika cache - disk I/O azaltma
 def get_existing_reports():
     """Mevcut rapor klasörlerini (tarih+id) ve meta bilgisini al"""
     reports = []
     if DATA_REPORTS_DIR.exists():
-        for item in DATA_REPORTS_DIR.iterdir():
-            if item.is_dir() and item.name.startswith("20"):
-                # Klasör ismi: 2025-10-05 veya 2025-10-05_abc12345
-                parts = item.name.split("_")
-                tarih = parts[0]
-                unique_id = "_".join(parts[1:]) if len(parts) > 1 else ""
-                # PDF dosyasını bul
-                pdfs = list(item.glob("*.pdf"))
-                pdf_path = str(pdfs[0]) if pdfs else None
-                # JSON analiz dosyasını bul
-                jsons = list(item.glob("*.json"))
-                json_path = str(jsons[0]) if jsons else None
-                # Klasördeki ilk Excel dosyasını bul (meta için)
-                excel_files = list((ROOT_DIR/"data"/"raw").glob(f"*{unique_id}*.xls*")) if unique_id else []
-                excel_name = excel_files[0].name if excel_files else ""
-                reports.append({
-                    "folder": item.name,
-                    "tarih": tarih,
-                    "unique_id": unique_id,
-                    "pdf": pdf_path,
-                    "json": json_path,
-                    "excel": excel_name
-                })
+        try:
+            for item in DATA_REPORTS_DIR.iterdir():
+                if item.is_dir() and item.name.startswith("20"):
+                    # Klasör ismi: 2025-10-05 veya 2025-10-05_abc12345
+                    parts = item.name.split("_")
+                    tarih = parts[0]
+                    unique_id = "_".join(parts[1:]) if len(parts) > 1 else ""
+                    
+                    # PERFORMANS: Dosya glob işlemlerini minimize et
+                    # SADECE klasör var/yok kontrolü, içerikleri gerektiğinde yükle
+                    reports.append({
+                        "folder": item.name,
+                        "tarih": tarih,
+                        "unique_id": unique_id,
+                        "pdf": None,  # Lazy loading - gerektiğinde yüklenecek
+                        "json": None,  # Lazy loading
+                        "excel": ""
+                    })
+        except (PermissionError, OSError):
+            pass  # Hata durumunda sessizce devam et
     # En yeni en başta
     reports = sorted(reports, key=lambda x: x["folder"], reverse=True)
     return reports
 
 
-@st.cache_data(ttl=30)  # 30 saniye cache - yeni yüklemeler hemen görünsün
+@st.cache_data(ttl=300, show_spinner=False)  # 5 dakika cache - performans için kritik
 def get_raw_files():
     """Ham Excel dosyalarını al"""
     if not DATA_RAW_DIR.exists():
@@ -1637,16 +1642,26 @@ def main():
     # PERFORMANS: Sayfa değiştiğinde gereksiz session_state'leri temizle
     current_page = st.session_state.get("page", "analiz")  # Varsayılan: Nakil Analizi
     
-    # Sayfa değişimi kontrolü
+    # Sayfa değişimi kontrolü - SADECE gerekli temizlik
     if "last_page" not in st.session_state:
         st.session_state.last_page = current_page
     elif st.session_state.last_page != current_page:
-        # Sayfa değişti - eski verileri temizle
-        keys_to_keep = {"page", "last_page", "sidebar_menu", "processed_files"}
+        # Sayfa değişti - SADECE işlem verilerini temizle (cache'leri değil!)
+        keys_to_keep = {
+            "page", "last_page", "sidebar_menu", "processed_files",
+            # Cache'lenen verileri koru - performans için kritik
+            "existing_dates", "existing_reports", "raw_files",
+            # Config ve processor cache'lerini koru
+            "config_loaded", "processors_loaded"
+        }
         keys_to_delete = [k for k in st.session_state.keys() if k not in keys_to_keep]
         for key in keys_to_delete:
             del st.session_state[key]
         st.session_state.last_page = current_page
+        
+        # Bellek temizliği (opsiyonel - sadece büyük veri varsa)
+        import gc
+        gc.collect()
     
     # Sidebar menüsü - Sadece 2 seçenek
     with st.sidebar:
