@@ -903,7 +903,7 @@ def run_command(command):
     return result
 
 
-def process_daily_data(file_path):
+def process_daily_data(file_path, unique_id=None):
     """TAM NAKİL ANALİZ SİSTEMİ - 4 gün önceki tüm özellikler"""
     try:
         import pandas as pd
@@ -922,6 +922,8 @@ def process_daily_data(file_path):
             # Tam python path kullan (Streamlit Cloud uyumluluğu)
             python_path = sys.executable
             command = [python_path, "main.py", "--gunluk-islem", str(file_path)]
+            if unique_id:
+                command += ["--unique-id", unique_id]
             result = run_command(command)
             
             # DEBUG: gerçek çıktıyı göster
