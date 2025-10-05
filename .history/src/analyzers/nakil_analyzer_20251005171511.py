@@ -314,8 +314,6 @@ class NakilAnalizcisi:
 
         except Exception as e:
             logger.error(f"Kapsamlı günlük analiz hatası: {e}")
-            # Hata durumunda da override'ı temizle
-            self.grafik_olusturucu._rapor_dizin_override = None
             raise
 
     def _nakil_bekleyen_raporu_olustur(self, il_gruplari: dict, gun_tarihi: str, rapor_dizin: Path):

@@ -305,17 +305,12 @@ class NakilAnalizcisi:
                     logger.info(f"PDF raporu oluşturuldu: {pdf_dosya}")
             except Exception as e:
                 logger.error(f"PDF rapor oluşturma hatası: {e}")
-            
-            # Grafik oluşturucu override'ını temizle
-            self.grafik_olusturucu._rapor_dizin_override = None
 
             logger.info(f"Kapsamlı analiz tamamlandı: {rapor_dosya}")
             return rapor
 
         except Exception as e:
             logger.error(f"Kapsamlı günlük analiz hatası: {e}")
-            # Hata durumunda da override'ı temizle
-            self.grafik_olusturucu._rapor_dizin_override = None
             raise
 
     def _nakil_bekleyen_raporu_olustur(self, il_gruplari: dict, gun_tarihi: str, rapor_dizin: Path):

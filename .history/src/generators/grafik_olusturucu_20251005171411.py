@@ -146,10 +146,6 @@ class GrafikOlusturucu:
 
     def _tarih_klasoru_olustur(self, gun_tarihi: str) -> Path:
         """Verilen tarih için klasör oluşturur ve path döner"""
-        # Eğer özel rapor dizini set edilmişse onu kullan
-        if self._rapor_dizin_override:
-            return self._rapor_dizin_override
-        
         tarih_klasor = RAPOR_DIZIN / gun_tarihi
         tarih_klasor.mkdir(parents=True, exist_ok=True)
         return tarih_klasor
