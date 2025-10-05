@@ -1487,11 +1487,13 @@ def ana_sayfa():
         st.success(f"✅ Dosya yüklendi: **{uploaded_file.name}**")
         st.info(f"📊 Dosya boyutu: {uploaded_file.size / 1024:.1f} KB")
         
-        # Dosyayı işle - TEK BUTON HERŞEYİ YAP
+        # Dosyayı işle - TEK BUTON, HERŞEYİ YAP
         if st.button("⚡ Hızlı İşle (Veri İşle + Analiz + PDF Oluştur)", type="primary", use_container_width=True):
                 # Önce dosyayı kaydet
                 try:
                     import hashlib
+                    
+                    # Benzersiz ID oluştur
                     now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
                     file_hash = hashlib.md5(uploaded_file.getvalue()).hexdigest()[:8]
                     unique_id = f"{now_str}_{file_hash}"
@@ -1504,12 +1506,21 @@ def ana_sayfa():
                     
                     progress_bar = st.progress(0)
                     status_text = st.empty()
+                    
+                    # Adım 1: Veri işleme
                     status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
                     progress_bar.progress(25)
+                    
                     result = process_daily_data(str(save_path), unique_id=unique_id)
-                        if result.returncode == 0:
-                            st.success("⚡ Hızlı işlem tamamlandı!")
-                            st.info(result.stdout)
+                    
+                    if result.returncode != 0:
+                        st.error("❌ Veri işleme hatası!")
+                        with st.expander("Hata Detayları", expanded=True):
+                            st.code(result.stderr)
+                        return
+                    
+                    progress_bar.progress(50)
+                    st.success("✅ Veri başarıyla işlendi!")
                             
                             # İleriye yönlendirme butonları
                             col1, col2, col3 = st.columns(3)
