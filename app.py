@@ -1,34 +1,43 @@
 """
 Nakil Analiz Sistemi - Streamlit Web Arayüzü
+PERFORMANS OPTİMİZASYONU: Lazy loading ile hızlı sayfa geçişleri
 """
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from pathlib import Path
-import base64
-import json
 import sys
 import os
 from datetime import datetime, timedelta
+import base64
+import json
 import subprocess
+
+# SADECE TEMEL IMPORT'LAR - Ağır kütüphaneler lazy loading
+# pandas, matplotlib, seaborn → Sayfa açıldığında yüklenecek
 
 # Projenin ana dizinini PATH'e ekle (import modüller için)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 
-# Proje modüllerini import et
-try:
-    from src.core.config import (
-        ISLENMIŞ_VERI_DIZIN, 
-        RAPOR_DIZIN,
-        HAM_VERI_DIZIN
-    )
+# LAZY LOADING HELPER
+@st.cache_resource
+def load_config():
+    """Config modülünü sadece gerektiğinde yükle"""
+    try:
+        from src.core.config import (
+            ISLENMIŞ_VERI_DIZIN, 
+            RAPOR_DIZIN,
+            HAM_VERI_DIZIN
+        )
+        return ISLENMIŞ_VERI_DIZIN, RAPOR_DIZIN, HAM_VERI_DIZIN, True
+    except ImportError as e:
+        st.warning(f"Modül import hatası: {e}")
+        return None, None, None, False
+
+@st.cache_resource
+def load_processors():
+    """İşlemci modüllerini sadece gerektiğinde yükle"""
     from src.processors.veri_isleme import VeriIsleme
     from src.analyzers.nakil_analyzer import NakilAnalizcisi
-    config_loaded = True
-except ImportError as e:
-    st.warning(f"Modül import hatası: {e}")
-    config_loaded = False
+    return VeriIsleme, NakilAnalizcisi
 
 # Ana dizine referans - Streamlit Cloud için
 ROOT_DIR = Path(__file__).parent.absolute()
@@ -823,6 +832,7 @@ def configure_page():
     )
 
 
+@st.cache_data(ttl=60)  # 60 saniye cache - yeni raporlar hemen görünsün
 def get_existing_dates():
     """Mevcut rapor tarihlerini al (eski fonksiyon - geriye dönük uyumluluk için)"""
     dates = []
@@ -854,6 +864,7 @@ def get_existing_dates():
     return dates
 
 
+@st.cache_data(ttl=60)  # 60 saniye cache - yeni raporlar hemen görünsün
 def get_existing_reports():
     """Mevcut rapor klasörlerini (tarih+id) ve meta bilgisini al"""
     reports = []
@@ -886,6 +897,7 @@ def get_existing_reports():
     return reports
 
 
+@st.cache_data(ttl=30)  # 30 saniye cache - yeni yüklemeler hemen görünsün
 def get_raw_files():
     """Ham Excel dosyalarını al"""
     if not DATA_RAW_DIR.exists():
@@ -1121,13 +1133,23 @@ def show_pdf(file_path):
         st.info("💡 PDF'i indirme butonunu kullanarak indirebilirsiniz")
 
 
+@st.cache_data(ttl=300)  # 5 dakika cache - grafik listesi
+def _get_graph_files(date_folder_path):
+    """Grafik dosyalarını al - cache'lenmiş"""
+    from pathlib import Path
+    date_folder = Path(date_folder_path)
+    return [str(f) for f in date_folder.glob("*.png")]
+
 def show_graphs(date_folder, num_graphs=6):
-    """Tarih klasöründen grafikleri göster"""
-    png_files = list(date_folder.glob("*.png"))
+    """Tarih klasöründen grafikleri göster - PERFORMANS OPTİMİZE"""
+    png_files = _get_graph_files(str(date_folder))
     
     if not png_files:
         st.warning("⚠️ Bu tarih için grafik bulunamadı.")
         return
+    
+    # Path objelerine dönüştür
+    png_files = [Path(f) for f in png_files]
     
     # Benzersiz key için klasör adını kullan
     folder_key = str(date_folder.name)
@@ -1658,6 +1680,20 @@ def ana_sayfa():
 def main():
     """Ana fonksiyon"""
     configure_page()
+    
+    # PERFORMANS: Sayfa değiştiğinde gereksiz session_state'leri temizle
+    current_page = st.session_state.get("page", "ana_sayfa")
+    
+    # Sayfa değişimi kontrolü
+    if "last_page" not in st.session_state:
+        st.session_state.last_page = current_page
+    elif st.session_state.last_page != current_page:
+        # Sayfa değişti - eski verileri temizle
+        keys_to_keep = {"page", "last_page", "sidebar_menu", "processed_files"}
+        keys_to_delete = [k for k in st.session_state.keys() if k not in keys_to_keep]
+        for key in keys_to_delete:
+            del st.session_state[key]
+        st.session_state.last_page = current_page
     
     # Sidebar kontrolü - eğer görünmüyorsa ana sayfada menü göster
     sidebar_visible = True
