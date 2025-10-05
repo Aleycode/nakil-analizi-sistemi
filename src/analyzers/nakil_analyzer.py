@@ -157,9 +157,7 @@ class NakilAnalizcisi:
                         baslik = self.grafik_olusturucu._grafik_baslik_olustur(
                             "vaka_durumu", grup_adi=il_grup_adi, vaka_tipi=vaka_tipi
                         )
-                        # Dict'i pandas Series'e çevir
-                        import pandas as pd
-
+                        # Dict'i pandas Series'e çevir (pd zaten global import edilmiş)
                         durum_series = pd.Series(durum_analizi["durum_sayilari"])
                         grafik_path = f"vaka_durumu_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png"
                         self.grafik_olusturucu.pasta_grafik_olustur(

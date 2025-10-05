@@ -1406,7 +1406,6 @@ Python: {sys.executable}
                         with st.spinner("⏳ Nakil analizi yapılıyor... (1-3 dakika sürebilir)"):
                             rapor_sonuc = analizci.kapsamli_gunluk_analiz(
                                 gun_tarihi=gun_tarihi,
-                                gun_tipi="bugun",
                                 unique_id=unique_id
                             )
                         
