@@ -1386,16 +1386,26 @@ Python: {sys.executable}
                     try:
                         gun_tarihi = datetime.now().strftime("%Y-%m-%d")
                         
-                        # NakilAnalizcisi'ni çağır
+                        # DEBUG: Adım adım bilgi
+                        status_text.text("📈 [2.1] Config yükleniyor...")
                         ISLENMIŞ_VERI_DIZIN, RAPOR_DIZIN, HAM_VERI_DIZIN, config_loaded = load_config()
+                        
+                        status_text.text("📈 [2.2] İşlemci modülleri yükleniyor...")
                         VeriIsleme, NakilAnalizcisi = load_processors()
                         
+                        status_text.text("📈 [2.3] Analizci başlatılıyor...")
                         analizci = NakilAnalizcisi()
-                        rapor_sonuc = analizci.kapsamli_gunluk_analiz(
-                            gun_tarihi=gun_tarihi,
-                            gun_tipi="bugun",
-                            unique_id=unique_id
-                        )
+                        
+                        status_text.text(f"📈 [2.4] Analiz çalışıyor... (unique_id: {unique_id[:20]}...)")
+                        
+                        with st.spinner("⏳ Nakil analizi yapılıyor... (1-3 dakika sürebilir)"):
+                            rapor_sonuc = analizci.kapsamli_gunluk_analiz(
+                                gun_tarihi=gun_tarihi,
+                                gun_tipi="bugun",
+                                unique_id=unique_id
+                            )
+                        
+                        status_text.text("📈 [2.5] Analiz tamamlandı, sonuç kontrol ediliyor...")
                         
                         # Başarılı sonuç
                         class AnalysisResult:
@@ -1404,14 +1414,21 @@ Python: {sys.executable}
                                 self.stdout = "Analiz tamamlandı" if success else ""
                                 self.stderr = "" if success else "Analiz başarısız"
                         
+                        # DEBUG: rapor_sonuc içeriğini göster
+                        with st.expander("🔍 DEBUG: rapor_sonuc içeriği", expanded=False):
+                            st.json(rapor_sonuc if rapor_sonuc else {"error": "None döndü"})
+                        
                         # Sonuç kontrolü ve detaylı hata mesajı
                         if rapor_sonuc and rapor_sonuc.get("durum") == "basarili":
+                            status_text.text("📈 [2.6] Başarılı! ✅")
                             analiz_result = AnalysisResult(True)
                         else:
                             # Hata detaylarını topla
+                            status_text.text("📈 [2.6] Başarısız! ❌")
                             hata_mesaji = "Analiz başarısız oldu.\n\n"
                             if rapor_sonuc:
                                 hata_mesaji += f"Durum: {rapor_sonuc.get('durum', 'bilinmiyor')}\n"
+                                hata_mesaji += f"rapor_sonuc keys: {list(rapor_sonuc.keys())}\n\n"
                                 if 'hata' in rapor_sonuc:
                                     hata_mesaji += f"Hata: {rapor_sonuc['hata']}\n"
                                 if 'mesaj' in rapor_sonuc:
