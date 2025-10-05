@@ -1222,13 +1222,116 @@ def analiz_sayfasi():
                 show_statistics(rep['folder'])
 
 
-# Eski analiz fonksiyonu kodları kaldırıldı - yukarıdaki analiz_sayfasi() yeni versiyondur
+def analiz_sayfasi_eski():
+    """Eski analiz sayfası - geriye dönük uyumluluk için"""
+    # Bu kısım artık kullanılmıyor, yeni yapı yukarıdaki analiz_sayfasi() fonksiyonunda
+    pass
 
-
-def rapor_sayfasi():
-    """Rapor sayfası içeriği - analiz_sayfasi() ile aynı işlevsellik"""
-    # Rapor arşivi analiz sayfasıyla aynı, yönlendirme yapabiliriz
-    analiz_sayfasi()
+    # Aşağıdaki kod artık kullanılmıyor - silme amaçlı yorum yapılmış
+    """
+    with col2:
+        if selected_date:
+            # Seçili tarihe ait dosya sayısını göster
+            date_folder = Path('data/processed') / f"günlük_{selected_date.replace('-', '')}"
+            if date_folder.exists():
+                file_count = len(list(date_folder.glob('*.parquet')))
+                st.metric(
+                    label="📊 Veri Dosyası",
+                    value=f"{file_count} adet"
+                )
+            
+            # Son analiz tarihini göster
+            report_folder = Path('data/reports') / selected_date
+            if report_folder.exists():
+                st.success("✅ Rapor mevcut")
+            else:
+                st.info("📝 Yeni analiz gerekli")
+    
+    if selected_date:
+        # İşlem türü seçimi
+        analysis_type = st.radio(
+            "Analiz türünü seçin:",
+            ["Günlük Rapor Görüntüle", "Yeni Analiz Çalıştır"],
+            horizontal=True,
+        )
+        
+        if analysis_type == "Günlük Rapor Görüntüle":
+            # Rapor klasörünü kontrol et
+            report_folder = DATA_REPORTS_DIR / selected_date
+            if report_folder.exists():
+                st.success(f"✅ {selected_date} tarihli raporlar bulundu!")
+                
+                # Analiz sonuçları
+                st.markdown("## 📊 Analiz Sonuçları")
+                
+                # Grafikleri göster
+                st.markdown("### 📈 Grafikler")
+                show_graphs(report_folder)
+                
+                # PDF raporu göster
+                pdf_path = report_folder / f"nakil_analiz_raporu_{selected_date}.pdf"
+                if pdf_path.exists():
+                    st.markdown("### 📄 PDF Raporu")
+                    
+                    col1, col2 = st.columns([1, 3])
+                    with col1:
+                        with open(pdf_path, "rb") as pdf_file:
+                            pdf_bytes = pdf_file.read()
+                        
+                        st.download_button(
+                            label="📥 PDF Raporu İndir",
+                            data=pdf_bytes,
+                            file_name=f"nakil_analiz_raporu_{selected_date}.pdf",
+                            mime="application/pdf"
+                        )
+                    
+                    with col2:
+                        st.markdown("PDF raporunu görüntülemek için tıklayın:")
+                        show_pdf_btn = st.button("PDF'i Göster")
+                        if show_pdf_btn:
+                            show_pdf(pdf_path)
+            else:
+                st.warning(f"⚠️ {selected_date} tarihli rapor klasörü bulunamadı.")
+                
+                # Alternatif parquet klasörünü kontrol et
+                try:
+                    tarih_obj = datetime.strptime(selected_date, "%Y-%m-%d")
+                    tarih_str = tarih_obj.strftime("%Y%m%d")
+                    processed_dir = ROOT_DIR / "data" / "processed"
+                    alt_folder = processed_dir / f"günlük_{tarih_str}"
+                    
+                    if alt_folder.exists():
+                        st.info(f"📁 İşlenmiş veri dizininde tarih verisi bulundu: {alt_folder}")
+                        st.info("Yeni analiz çalıştırabilirsiniz.")
+                    else:
+                        st.error("❌ Bu tarih için işlenmiş veri bulunamadı.")
+                except Exception as e:
+                    st.error(f"❌ Veri kontrolü hatası: {e}")
+        else:  # Yeni Analiz Çalıştır
+            if st.button("Analizi Başlat"):
+                with st.spinner(f"{selected_date} tarihli veriler analiz ediliyor..."):
+                    result = run_analysis(selected_date)
+                    if result.returncode == 0:
+                        st.success("✅ Analiz başarıyla tamamlandı!")
+                        st.code(result.stdout)
+                        
+                        # Rapor klasörünü kontrol et
+                        report_folder = DATA_REPORTS_DIR / selected_date
+                        if report_folder.exists():
+                            st.info(f"📁 Raporlar şu klasöre kaydedildi: {report_folder}")
+                            
+                            # Grafikler
+                            with st.expander("Oluşturulan Grafikleri Göster"):
+                                show_graphs(report_folder)
+                            
+                            # PDF
+                            pdf_path = report_folder / f"nakil_analiz_raporu_{selected_date}.pdf"
+                            if pdf_path.exists():
+                                st.markdown("### 📄 PDF Raporu")
+                                show_pdf(pdf_path)
+                    else:
+                        st.error("❌ Analiz sırasında hata oluştu:")
+                        st.code(result.stderr)
 
 
 def rapor_sayfasi():

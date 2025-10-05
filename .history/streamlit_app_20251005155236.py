@@ -81,36 +81,35 @@ def configure_page():
         unsafe_allow_html=True,
     )
 
-def get_existing_reports():
-    """Mevcut rapor klasörlerini (tarih+id) ve meta bilgisini al"""
-    reports = []
+def get_existing_dates():
+    """Mevcut rapor tarihlerini al"""
+    dates = []
+    
+    # reports dizinini kontrol et
     if DATA_REPORTS_DIR.exists():
         for item in DATA_REPORTS_DIR.iterdir():
             if item.is_dir() and item.name.startswith("20"):
-                # Klasör ismi: 2025-10-05 veya 2025-10-05_abc12345
-                parts = item.name.split("_")
-                tarih = parts[0]
-                unique_id = parts[1] if len(parts) > 1 else ""
-                # PDF dosyasını bul
-                pdfs = list(item.glob("*.pdf"))
-                pdf_path = str(pdfs[0]) if pdfs else None
-                # JSON analiz dosyasını bul
-                jsons = list(item.glob("*.json"))
-                json_path = str(jsons[0]) if jsons else None
-                # Klasördeki ilk Excel dosyasını bul (meta için)
-                excel_files = list((ROOT_DIR/"data"/"raw").glob(f"*{unique_id}*.xls*")) if unique_id else []
-                excel_name = excel_files[0].name if excel_files else ""
-                reports.append({
-                    "folder": item.name,
-                    "tarih": tarih,
-                    "unique_id": unique_id,
-                    "pdf": pdf_path,
-                    "json": json_path,
-                    "excel": excel_name
-                })
-    # En yeni en başta
-    reports = sorted(reports, key=lambda x: x["folder"], reverse=True)
-    return reports
+                dates.append(item.name)
+    
+    # processed/günlük dizinlerini kontrol et
+    processed_dir = ROOT_DIR / "data" / "processed"
+    if processed_dir.exists():
+        for item in processed_dir.iterdir():
+            if item.is_dir() and item.name.startswith("günlük_"):
+                # "günlük_20250925" formatından "2025-09-25" formatına dönüştür
+                tarih_str = item.name.replace("günlük_", "")
+                if len(tarih_str) == 8:  # YYYYMMDD formatı
+                    try:
+                        tarih_obj = datetime.strptime(tarih_str, "%Y%m%d")
+                        formatted_date = tarih_obj.strftime("%Y-%m-%d")
+                        if formatted_date not in dates:
+                            dates.append(formatted_date)
+                    except ValueError:
+                        pass
+    
+    # Tarihleri ters sırala (en yeni önce)
+    dates.sort(reverse=True)
+    return dates
 
 def get_raw_files():
     """Ham Excel dosyalarını al"""
@@ -492,9 +491,10 @@ def analysis_section():
     3. Oluşturulan raporu görüntüleyin ve PDF olarak indirin
     """)
     
-    # İşlenmiş rapor listesi (tarih+id)
-    reports = get_existing_reports()
-    if not reports:
+    # İşlenmiş tarih listesi
+    dates = get_existing_dates()
+    
+    if not dates:
         st.warning("⚠️ Henüz işlenmiş veri bulunmuyor.")
         st.markdown("""
         <div style="padding: 20px; border: 1px solid #FF9800; border-radius: 10px; text-align: center; background-color: #FFF8E1;">
@@ -502,34 +502,85 @@ def analysis_section():
         </div>
         """, unsafe_allow_html=True)
         return
-
-    st.markdown("### Rapor Arşivi (Tarih + Yükleme Kimliği)")
-    for rep in reports:
-        with st.expander(f"{rep['tarih']}  |  {rep['unique_id']}  |  {rep['excel']}"):
-            st.markdown(f"**Klasör:** `{rep['folder']}`")
-            if rep['pdf'] and os.path.exists(rep['pdf']):
-                st.markdown("#### 📄 PDF Raporu")
-                with open(rep['pdf'], "rb") as pdf_file:
-                    pdf_bytes = pdf_file.read()
-                st.download_button(
-                    label="PDF Raporu İndir",
-                    data=pdf_bytes,
-                    file_name=os.path.basename(rep['pdf']),
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-                st.markdown(f"- Dosya: {os.path.basename(rep['pdf'])}")
-                st.markdown(f"- Boyut: {os.path.getsize(rep['pdf'])/1024:.1f} KB")
-                with st.expander("📋 PDF Raporu Önizleme", expanded=False):
-                    show_pdf(rep['pdf'])
-            if rep['json'] and os.path.exists(rep['json']):
-                st.markdown(f"- Analiz JSON: `{os.path.basename(rep['json'])}`")
-            # Grafikler
-            date_folder = DATA_REPORTS_DIR / rep['folder']
-            st.markdown("#### 📈 Analiz Grafikleri")
-            show_graphs(date_folder, num_graphs=9)
-            st.markdown("#### 📊 Analiz İstatistikleri")
-            show_statistics(rep['folder'])
+    
+    # Tarih seçimi
+    st.markdown("### Rapor Tarihi Seçin")
+    selected_date = st.selectbox("İşlenmiş tarih seçin", dates)
+    
+    # Tarih bilgilerini göster
+    if selected_date:
+        date_folder = DATA_REPORTS_DIR / selected_date
+        report_files = list(date_folder.glob("*"))
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown(f"**Seçilen tarih:** {selected_date}")
+        with col2:
+            st.markdown(f"**Dosya sayısı:** {len(report_files)}")
+    
+    # Analiz butonu - daha belirgin
+    if st.button("📊 Analiz Yap ve Rapor Oluştur", use_container_width=True, type="primary"):
+        with st.spinner(f"{selected_date} tarihi için analiz yapılıyor ve rapor hazırlanıyor..."):
+            result = run_analysis(selected_date)
+            
+            if result.returncode == 0:
+                st.balloons()  # Başarıda balonlar uçur
+                st.markdown("<div style='padding: 20px; border-radius: 10px; background-color: #E8F5E9; border-left: 5px solid #4CAF50;'><h3 style='color: #2E7D32;'>✅ Analiz başarıyla tamamlandı!</h3></div>", unsafe_allow_html=True)
+                
+                # Bölümler arasında ayırıcı
+                st.markdown("---")
+                
+                # PDF raporu
+                pdf_path = DATA_REPORTS_DIR / selected_date / f"nakil_analiz_raporu_{selected_date}.pdf"
+                if os.path.exists(pdf_path):
+                    st.markdown("### 📄 PDF Raporu")
+                    
+                    col1, col2 = st.columns([1, 2])
+                    with col1:
+                        with open(pdf_path, "rb") as pdf_file:
+                            pdf_bytes = pdf_file.read()
+                        
+                        st.download_button(
+                            label="� PDF Raporu İndir",
+                            data=pdf_bytes,
+                            file_name=f"nakil_analiz_raporu_{selected_date}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                    
+                    with col2:
+                        st.markdown(f"""
+                        <div style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                            <strong>Rapor bilgileri:</strong><br>
+                            - Dosya: nakil_analiz_raporu_{selected_date}.pdf<br>
+                            - Tarih: {selected_date}<br>
+                            - Boyut: {os.path.getsize(pdf_path) / 1024:.1f} KB
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    # PDF önizleme
+                    with st.expander("📋 PDF Raporu Önizleme", expanded=True):
+                        show_pdf(pdf_path)
+                
+                # Bölümler arasında ayırıcı
+                st.markdown("---")
+                
+                # Grafikleri göster
+                date_folder = DATA_REPORTS_DIR / selected_date
+                st.markdown("### 📈 Analiz Grafikleri")
+                show_graphs(date_folder, num_graphs=9)  # Daha fazla grafik göster
+                
+                # Bölümler arasında ayırıcı
+                st.markdown("---")
+                
+                # İstatistikleri göster
+                st.markdown("### 📊 Analiz İstatistikleri")
+                show_statistics(selected_date)
+                
+            else:
+                st.error("❌ Analiz hatası!")
+                with st.expander("Hata Detayları", expanded=True):
+                    st.text(result.stderr)
 
 def main():
     configure_page()
