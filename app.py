@@ -1111,6 +1111,9 @@ def show_graphs(date_folder, num_graphs=6):
         st.warning("⚠️ Bu tarih için grafik bulunamadı.")
         return
     
+    # Benzersiz key için klasör adını kullan
+    folder_key = str(date_folder.name)
+    
     # Grafikler için filtre ekle
     if len(png_files) > 6:
         # Filtre seçenekleri oluştur
@@ -1124,7 +1127,8 @@ def show_graphs(date_folder, num_graphs=6):
         
         selected_category = st.radio("Grafik kategorisi seçin:", 
                                    list(graph_categories.keys()), 
-                                   horizontal=True)
+                                   horizontal=True,
+                                   key=f"graph_category_{folder_key}")
         
         # Filtreleme yap
         if selected_category != "Tümü":
@@ -1134,7 +1138,7 @@ def show_graphs(date_folder, num_graphs=6):
     # Kaç grafik gösterileceğini seç
     total_graphs = len(png_files)
     if total_graphs > num_graphs:
-        show_all = st.checkbox("Tüm grafikleri göster", value=False)
+        show_all = st.checkbox("Tüm grafikleri göster", value=False, key=f"show_all_{folder_key}")
         if show_all:
             display_graphs = png_files
         else:
