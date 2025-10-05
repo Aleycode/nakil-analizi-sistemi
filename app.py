@@ -1155,6 +1155,79 @@ def show_graphs(date_folder, num_graphs=6):
             st.image(str(graph), caption=graph.name, use_container_width=True)
 
 
+def show_statistics(date_or_folder):
+    """İstatistikleri göster - tarih veya klasör adı alabilir"""
+    # Eğer klasör adı geliyorsa (ör: 2025-10-06_abc123), ilk kısmı al
+    if "_" in str(date_or_folder):
+        # Klasör adından tarihi çıkar
+        parts = str(date_or_folder).split("_")
+        date = parts[0]
+        stats_file = DATA_REPORTS_DIR / date_or_folder / f"nakil_bekleyen_raporu_{date}.txt"
+    else:
+        # Sadece tarih geliyorsa
+        date = date_or_folder
+        stats_file = DATA_REPORTS_DIR / date / f"nakil_bekleyen_raporu_{date}.txt"
+    
+    if stats_file.exists():
+        with open(stats_file, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        # İstatistik içeriğini bölümlere ayır
+        sections = []
+        current_section = []
+        current_title = "Genel İstatistikler"
+        
+        for line in content.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Yeni bölüm başlığı mı?
+            if line.isupper() and len(line) > 10:
+                if current_section:  # Önceki bölümü kaydet
+                    sections.append({"title": current_title, "content": current_section})
+                    current_section = []
+                current_title = line
+            else:
+                current_section.append(line)
+                
+        # Son bölümü de ekle
+        if current_section:
+            sections.append({"title": current_title, "content": current_section})
+            
+        # İstatistikleri güzel bir şekilde göster
+        if len(sections) > 1:
+            # Sekmeli görünüm oluştur
+            tabs = st.tabs([section["title"].title() for section in sections])
+            
+            for i, (tab, section) in enumerate(zip(tabs, sections)):
+                with tab:
+                    # Özel formatlanmış içerik
+                    st.markdown(f"<h3>{section['title'].title()}</h3>", unsafe_allow_html=True)
+                    
+                    for line in section["content"]:
+                        if line.startswith("•") or line.startswith("-"):
+                            st.markdown(f"<div style='margin-left: 20px;'>{line}</div>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<div><strong>{line}</strong></div>", unsafe_allow_html=True)
+        else:
+            # Tek bölüm varsa direkt göster
+            st.markdown("<h3>İstatistikler</h3>", unsafe_allow_html=True)
+            for line in content.split('\n'):
+                if line.strip():
+                    st.write(line)
+        
+        # İstatistik dosyasını indir
+        with open(stats_file, "r", encoding="utf-8") as f:
+            st.download_button(
+                label="📝 İstatistik Dosyasını İndir",
+                data=f.read(),
+                file_name=f"nakil_istatistik_{date}.txt",
+                mime="text/plain"
+            )
+    else:
+        st.warning("⚠️ Bu tarih için istatistik dosyası bulunamadı.")
+
 
 def analiz_sayfasi():
     """Analiz sayfası içeriği"""
