@@ -269,31 +269,13 @@ def configure_page():
         
         div[data-testid="stSelectbox"] select {
             background-color: #F0F0F0 !important;
-            color: #000000 !important;
+            color: #333333 !important;
             border: 1px solid #CCCCCC !important;
         }
         
         div[data-testid="stSelectbox"] option {
             background-color: #FFFFFF !important;
-            color: #000000 !important;
-        }
-        
-        /* Selectbox selected value container */
-        div[data-testid="stSelectbox"] {
-            background-color: #F0F0F0 !important;
-        }
-        
-        div[data-testid="stSelectbox"] * {
-            color: #000000 !important;
-        }
-        
-        div[data-testid="stSelectbox"] > div {
-            background-color: #F0F0F0 !important;
-        }
-        
-        div[data-testid="stSelectbox"] > div > div {
-            background-color: #F0F0F0 !important;
-            color: #000000 !important;
+            color: #333333 !important;
         }
         
         /* Selectbox dropdown styling - AÇIK ARKAPLAN */
