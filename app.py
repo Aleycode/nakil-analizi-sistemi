@@ -854,15 +854,30 @@ def get_existing_reports():
                     tarih = parts[0]
                     unique_id = "_".join(parts[1:]) if len(parts) > 1 else ""
                     
-                    # PERFORMANS: Dosya glob işlemlerini minimize et
-                    # SADECE klasör var/yok kontrolü, içerikleri gerektiğinde yükle
+                    # Excel dosyasını unique_id ile eşleştir
+                    # Unique ID format: 20251007_102038_06684ed6 (timestamp_hash)
+                    # Excel format: 20251007_102038_06684ed6_Nakil_Vaka_Talepleri.xls
+                    excel_name = ""
+                    if unique_id:
+                        # Raw klasöründe unique_id içeren Excel dosyasını ara
+                        try:
+                            excel_files = list((ROOT_DIR/"data"/"raw").glob(f"{unique_id}*.xls*"))
+                            if not excel_files:
+                                # Alternatif: unique_id'nin ilk kısmı ile ara
+                                first_part = unique_id.split("_")[0] if "_" in unique_id else unique_id
+                                excel_files = list((ROOT_DIR/"data"/"raw").glob(f"*{first_part}*.xls*"))
+                            excel_name = excel_files[0].name if excel_files else ""
+                        except (OSError, IndexError):
+                            pass
+                    
+                    # PERFORMANS: PDF/JSON'u gerektiğinde yükle
                     reports.append({
                         "folder": item.name,
                         "tarih": tarih,
                         "unique_id": unique_id,
                         "pdf": None,  # Lazy loading - gerektiğinde yüklenecek
                         "json": None,  # Lazy loading
-                        "excel": ""
+                        "excel": excel_name
                     })
         except (PermissionError, OSError):
             pass  # Hata durumunda sessizce devam et
@@ -1559,14 +1574,20 @@ def rapor_sayfasi():
     labels_display = []
     labels_folder = []
     for r in reports:
-        # Unique ID'den saat bilgisini çıkar (ör: 20251007_142533 -> 14:25:33)
+        # Unique ID'den saat bilgisini çıkar
+        # Format 1: 20251007_142533_hash → saat parts[1] (HHMMSS)
+        # Format 2: 20250925 → sadece tarih, saat yok
         saat = "Saat Yok"
         if r["unique_id"] and "_" in r["unique_id"]:
             parts = r["unique_id"].split("_")
-            if len(parts[0]) >= 6:  # HHMMSS formatı
-                saat_str = parts[0][8:14] if len(parts[0]) >= 14 else parts[0][-6:] if len(parts[0]) >= 6 else ""
-                if len(saat_str) == 6:
-                    saat = f"{saat_str[0:2]}:{saat_str[2:4]}:{saat_str[4:6]}"
+            # İkinci part'ta saat olabilir (HHMMSS formatı)
+            if len(parts) >= 2 and len(parts[1]) >= 6 and parts[1].isdigit():
+                saat_str = parts[1][:6]  # İlk 6 karakter: HHMMSS
+                saat = f"{saat_str[0:2]}:{saat_str[2:4]}:{saat_str[4:6]}"
+            # Ya da ilk part'ın sonunda olabilir (YYYYMMDDHHMMSSmsms formatı)
+            elif len(parts[0]) >= 14 and parts[0][:8].isdigit():
+                saat_str = parts[0][8:14]  # 8-14 arası: HHMMSS
+                saat = f"{saat_str[0:2]}:{saat_str[2:4]}:{saat_str[4:6]}"
         
         # Excel dosya adını kısalt (çok uzunsa)
         excel_name = r["excel"] if r["excel"] else "Excel Yok"
