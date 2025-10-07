@@ -44,6 +44,15 @@ class VeriIsleme:
                 df = pd.read_excel(excel_dosya, engine="openpyxl")
             islenen_satir = len(df)
 
+            # Tarih sütunlarını güvenli şekilde datetime'a çevir
+            df = self.ensure_datetime_columns(df)
+
+            # Veri düzenleme ayarlarını uygula (klinik/durum dönüşümleri vb.)
+            try:
+                df = self._veri_duzenleme_uygula(df)
+            except Exception as _:
+                logger.warning("Günlük veri düzenleme uygulanamadı, ham veri ile devam ediliyor")
+
             # Sütun adlarını standartlaştır (küçük harf, boşlukları temizle)
             df.columns = [str(col).strip().lower() for col in df.columns]
 
@@ -80,6 +89,38 @@ class VeriIsleme:
         except Exception as e:
             logger.error(f"Veri işleme hatası: {e}", exc_info=True)
             raise
+
+    def ensure_datetime_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Verideki ana tarih sütunlarını güvenli biçimde datetime'a çevirir.
+
+        Hem Excel'den gelen ham veri hem de parquet'ten okunan veri için kullanılır.
+        """
+        try:
+            if df is None or df.empty:
+                return df
+
+            tarih_sutunlari_gercek = [
+                "talep tarihi",
+                "oluşturma tarihi",
+                "yer aramaya başlama tarihi",
+                "yer bulunma tarihi",
+                "ekip talep tarihi",
+                "ekip belirlenme tarihi",
+                "vakanın ekibe veriliş tarihi",
+            ]
+            for col in tarih_sutunlari_gercek:
+                if col in df.columns and not pd.api.types.is_datetime64_any_dtype(df[col]):
+                    # str'e çevir ve iki aşamalı parse et
+                    seri = df[col].astype(str)
+                    parsed = pd.to_datetime(seri, format="%d-%m-%Y %H:%M:%S", errors="coerce")
+                    # Yetersizse genel parse
+                    if parsed.isna().sum() > len(parsed) * 0.5:
+                        parsed = pd.to_datetime(seri, errors="coerce")
+                    df[col] = parsed
+            return df
+        except Exception as e:
+            logger.warning(f"Datetime dönüştürme hatası: {e}")
+            return df
 
     def veriyi_oku(self, columns=None) -> pd.DataFrame:
         """Ana veri dosyasını okur. HAFIZA OPTİMİZASYONU: Sadece gerekli kolonları yükle"""

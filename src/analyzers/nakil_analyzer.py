@@ -59,11 +59,20 @@ class NakilAnalizcisi:
                 if gunluk_dosya.exists():
                     logger.info(f"Unique_id'li günlük dosya okunuyor: {gunluk_dosya}")
                     df_gunluk = pd.read_parquet(gunluk_dosya)
+                    # Tarih sütunlarını normalize et
+                    try:
+                        from ..processors.veri_isleme import VeriIsleme as _VI
+                        df_gunluk = _VI().ensure_datetime_columns(df_gunluk)
+                    except Exception as _:
+                        pass
                 else:
                     logger.error(f"Unique_id'li günlük dosya bulunamadı: {gunluk_dosya}")
                     logger.error(f"Aranan klasör: {gunluk_klasor}")
                     logger.error(f"Klasör mevcut mu: {gunluk_klasor.exists()}")
-                    return {"durum": "hata", "mesaj": f"Günlük dosya bulunamadı: {gunluk_dosya}"}
+                    mevcut_icerik = []
+                    if gunluk_klasor.exists():
+                        mevcut_icerik = [str(p) for p in gunluk_klasor.glob('*')]
+                    return {"durum": "hata", "mesaj": f"Günlük dosya bulunamadı: {gunluk_dosya}", "klasor": str(gunluk_klasor), "icerik": mevcut_icerik}
                     
                 # Bu dosya zaten günlük filtreli, vaka tipi belirleme yap
                 df_gunluk = self.veri_isleme.vaka_tipi_belirle(df_gunluk, gun_tarihi)
@@ -72,7 +81,7 @@ class NakilAnalizcisi:
                 df = self.veri_isleme.veriyi_oku()
                 if df.empty:
                     logger.warning("Ana veri boş, analiz yapılamıyor.")
-                    return {} # veya hata yönetimi
+                    return {"durum": "hata", "mesaj": "Ana veri boş, analiz yapılamıyor. 'data/processed/ana_veri.parquet' dosyası yok veya boş."}
                 
                 df_gunluk = self.veri_isleme.gunluk_zaman_araligi_filtrele(df, gun_tarihi)
                 df_gunluk = self.veri_isleme.vaka_tipi_belirle(df_gunluk, gun_tarihi)

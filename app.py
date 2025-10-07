@@ -672,49 +672,18 @@ def configure_page():
             color: #FAFAFA !important;
         }
         
-        /* Form elementleri */
-        .stForm {
-            color: #FAFAFA !important;
+        /* Kod blokları görünürlüğü için koyu tema iyileştirmeleri */
+        .stMarkdown code {
+            background-color: #0f172a !important;
+            color: #e5e7eb !important;
+            padding: 2px 6px !important;
+            border-radius: 4px !important;
+            border: 1px solid #334155 !important;
         }
-        
-        .stForm * {
-            color: #FAFAFA !important;
-        }
-        
-        /* Caption yazıları */
-        .caption {
-            color: #B0BEC5 !important;
-        }
-        
-        /* Small yazıları */
-        small {
-            color: #B0BEC5 !important;
-        }
-        
-        /* İçerik alanındaki tüm yazılar */
-        .css-1d391kg * {
-            color: #FAFAFA !important;
-        }
-        
-        /* Streamlit component'leri */
-        [class*="css-"] {
-            color: #FAFAFA !important;
-        }
-        
-        /* Text input placeholder'ları */
-        input::placeholder {
-            color: #B0BEC5 !important;
-        }
-        
-        /* Dropdown yazıları */
-        option {
-            color: #FAFAFA !important;
-            background-color: #2E4057 !important;
-        }
-        
-        select {
-            color: #FAFAFA !important;
-            background-color: #2E4057 !important;
+
+        /* Code block container padding */
+        div[data-testid="stCodeBlock"] {
+            padding: 6px 8px !important;
         }
         """
     else:
@@ -1044,10 +1013,16 @@ def process_simple_excel_fallback(file_path, reason="Ana sistem kullanılamıyor
         import pandas as pd
         from pathlib import Path
         
-        # Multi-engine Excel okuma
-        df = None
-        # Hem .xls hem de .xlsx dosyaları için openpyxl kullan
-        df = pd.read_excel(file_path, engine='openpyxl')
+        # Uzantıya göre doğru engine'i kullan
+        file_path = Path(file_path)
+        engine = 'openpyxl' if file_path.suffix.lower() == '.xlsx' else 'xlrd'
+        try:
+            df = pd.read_excel(file_path, engine=engine)
+        except Exception as e:
+            # Alternatif deneme: engine belirtmeden
+            df = pd.read_excel(file_path)
+            reason_local = f"{reason} (engine={engine} başarısız: {e})"
+            reason = reason_local
         
         if df.empty:
             raise ValueError("Excel dosyası boş")
@@ -1057,7 +1032,7 @@ def process_simple_excel_fallback(file_path, reason="Ana sistem kullanılamıyor
         # Parquet kaydetme
         processed_dir = ROOT_DIR / "data" / "processed"
         processed_dir.mkdir(parents=True, exist_ok=True)
-        output_file = processed_dir / f"processed_{Path(file_path).stem}.parquet"
+        output_file = processed_dir / f"processed_{file_path.stem}.parquet"
         df.to_parquet(output_file, index=False)
         
         class SuccessResult:
@@ -1358,9 +1333,9 @@ def analiz_sayfasi():
                 progress_bar.progress(25)
                 
                 # Debug: Komut bilgisi
-                with st.expander("🔧 İşlem Detayları (Debug)", expanded=False):
+                with st.expander("🔧 İşlem Detayları (Debug)", expanded=True):
                     st.code(f"""
-Dosya: {save_path}
+                    Dosya: {save_path}
 Unique ID: {unique_id}
 Çalışma Dizini: {ROOT_DIR}
 Python: {sys.executable}
@@ -1465,39 +1440,35 @@ Python: {sys.executable}
                     status_text.text("")
                     
                     if analiz_result.returncode == 0:
-                        st.balloons()
-                        st.success("🎉 Nakil analizi tamamlandı!")
-                        st.info("📊 **Detayları görüntülemek için:** Aşağıdaki \"Rapor Arşivi\" bölümünden raporunuzu inceleyebilirsiniz.")
-                        # Sayfayı yenile - yeni rapor görünsün
+                        # Başarı durumunu session_state'e yaz ve arşive yönlendir
+                        st.session_state.last_analysis = {
+                            "status": "success",
+                            "date": gun_tarihi,
+                            "unique_id": unique_id,
+                            "stdout": getattr(analiz_result, "stdout", ""),
+                            "stderr": getattr(analiz_result, "stderr", ""),
+                        }
+                        st.session_state.preselect_date = gun_tarihi
+                        st.session_state.preselect_folder = f"{gun_tarihi}_{unique_id}" if unique_id else gun_tarihi
+                        st.success("🎉 Nakil analizi yapılmıştır.")
+                        st.info("📄 Detayları Rapor Arşivi bölümünden görüntüleyebilirsiniz.")
+                        st.session_state.page = "rapor"
                         st.rerun()
                     else:
-                        st.error("❌ Analiz hatası!")
-                        
-                        # Detaylı hata mesajı
-                        with st.expander("🔍 Hata Detayları", expanded=True):
-                            st.markdown(f"""
-                            **Return Code:** `{analiz_result.returncode}`
-                            
-                            **Stderr:**
-                            """)
-                            if analiz_result.stderr:
-                                st.code(analiz_result.stderr)
-                            else:
-                                st.warning("Stderr boş - hata mesajı alınamadı")
-                            
-                            st.markdown("**Stdout:**")
-                            if analiz_result.stdout:
-                                st.code(analiz_result.stdout)
-                            else:
-                                st.info("Stdout boş")
-                            
-                            st.markdown("**Olası Sebepler:**")
-                            st.markdown("""
-                            1. `main.py --analiz` komutu çalışmadı
-                            2. Veri işleme başarılı ama analiz aşaması başarısız
-                            3. Python modüllerinde import hatası
-                            4. Parquet dosyası bulunamadı veya okunamadı
-                            """)
+                        # Hata durumunu session_state'e yaz ve arşive yönlendir
+                        st.session_state.last_analysis = {
+                            "status": "error",
+                            "date": gun_tarihi,
+                            "unique_id": unique_id,
+                            "stdout": getattr(analiz_result, "stdout", ""),
+                            "stderr": getattr(analiz_result, "stderr", ""),
+                            "returncode": getattr(analiz_result, "returncode", 1),
+                        }
+                        st.session_state.preselect_date = gun_tarihi
+                        st.session_state.preselect_folder = f"{gun_tarihi}_{unique_id}" if unique_id else gun_tarihi
+                        st.error("❌ Analiz hatası! Detayları Rapor Arşivi bölümünden görüntüleyebilirsiniz.")
+                        st.session_state.page = "rapor"
+                        st.rerun()
                 
             except Exception as e:
                 st.error(f"❌ İşlem hatası: {e}")
@@ -1511,50 +1482,31 @@ Python: {sys.executable}
 def rapor_sayfasi():
     """Rapor Arşivi Sayfası - Geçmiş raporları görüntüleme"""
     st.markdown("<h1 class='main-header'>Rapor Arşivi</h1>", unsafe_allow_html=True)
-    
-    # Mevcut tarihleri kontrol et
-    dates = get_existing_dates()
-    
-    if not dates:
+
+    # Son işlem durum kutucuğu
+    last = st.session_state.get("last_analysis")
+    if last:
+        if last.get("status") == "success":
+            st.success("✅ Son işlem: Nakil analizi başarıyla tamamlandı.")
+        else:
+            with st.expander("❌ Son işlem hata detayı", expanded=True):
+                st.markdown(f"Return Code: `{last.get('returncode', '')}`")
+                if last.get("stderr"):
+                    st.markdown("**Stderr:**")
+                    st.code(last.get("stderr"))
+                if last.get("stdout"):
+                    st.markdown("**Stdout:**")
+                    st.code(last.get("stdout"))
+
+    # Klasör bazlı rapor listesi
+    reports_all = get_existing_reports()
+    if not reports_all:
         st.warning("⚠️ Henüz oluşturulmuş rapor bulunamadı.")
-        st.info("📝 Rapor oluşturmak için:")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("""
-            **1️⃣ Veri Yükleme**
-            - Ana sayfadan Excel dosyası yükleyin
-            - "Hemen İşle" butonuna tıklayın
-            """)
-        with col2:
-            st.markdown("""
-            **2️⃣ Analiz Çalıştırma**  
-            - Nakil Analizi sayfasına gidin
-            - Tarihi seçip analiz çalıştırın
-            """)
-        
-        # Hızlı erişim butonları
-        st.markdown("### 🚀 Hızlı İşlemler")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            if st.button("📥 Veri Yükle", use_container_width=True):
-                st.session_state.page = "ana_sayfa"  
-                st.rerun()
-        
-        with col2:
-            if st.button("📊 Nakil Analizi", use_container_width=True):
-                st.session_state.page = "analiz"
-                st.rerun()
-                
-        with col3:
-            if st.button("� Excel Yükle", use_container_width=True):
-                st.session_state.page = "ana_sayfa"
-                st.rerun()
-        
+        st.info("📝 Rapor oluşturmak için Analiz sayfasından bir Excel yükleyip çalıştırın.")
         return
-    
-    # Tarih filtresi
+
+    # Tarih listesi ve filtre
+    dates = sorted({r["tarih"] for r in reports_all}, reverse=True)
     col1, col2 = st.columns(2)
     with col1:
         start_date = st.date_input(
@@ -1566,70 +1518,70 @@ def rapor_sayfasi():
             "Bitiş tarihi:",
             value=datetime.strptime(dates[0], "%Y-%m-%d").date(),
         )
-    
-    # Tarihleri filtrele
-    filtered_dates = []
-    for date_str in dates:
-        date = datetime.strptime(date_str, "%Y-%m-%d").date()
-        if start_date <= date <= end_date:
-            filtered_dates.append(date_str)
-    
-    # Filtrelenmiş tarihleri göster
+
+    filtered_dates = [d for d in dates if start_date <= datetime.strptime(d, "%Y-%m-%d").date() <= end_date]
     if not filtered_dates:
         st.warning("⚠️ Seçilen tarih aralığında rapor bulunamadı.")
         return
-    
-    st.success(f"✅ {len(filtered_dates)} günlük rapor bulundu.")
-    
-    # Görüntülenecek rapor seçimi
-    selected_date = st.selectbox("Görüntülenecek raporu seçin:", filtered_dates)
-    
-    if selected_date:
-        # Rapor klasörünü kontrol et
-        report_folder = DATA_REPORTS_DIR / selected_date
-        if report_folder.exists():
-            st.success(f"✅ {selected_date} tarihli raporlar")
-            
-            # Rapor türleri için sekmeler
-            tab1, tab2, tab3 = st.tabs(["📈 Grafikler", "📄 PDF Raporu", "📊 JSON Verisi"])
-            
-            with tab1:
-                show_graphs(report_folder, num_graphs=10)
-            
-            with tab2:
-                # PDF raporu göster
-                pdf_path = report_folder / f"nakil_analiz_raporu_{selected_date}.pdf"
-                if pdf_path.exists():
-                    with open(pdf_path, "rb") as pdf_file:
-                        pdf_bytes = pdf_file.read()
-                    
-                    st.download_button(
-                        label="📥 PDF Raporu İndir",
-                        data=pdf_bytes,
-                        file_name=f"nakil_analiz_raporu_{selected_date}.pdf",
-                        mime="application/pdf"
-                    )
-                    
-                    show_pdf(pdf_path)
-                else:
-                    st.warning("⚠️ Bu tarih için PDF raporu bulunamadı.")
-            
-            with tab3:
-                # JSON verilerini göster
-                json_files = list(report_folder.glob("*.json"))
-                if json_files:
-                    for json_file in json_files:
-                        with st.expander(f"{json_file.name}"):
-                            try:
-                                with open(json_file) as f:
-                                    data = json.load(f)
-                                st.json(data)
-                            except Exception as e:
-                                st.error(f"❌ JSON okuma hatası: {e}")
-                else:
-                    st.warning("⚠️ Bu tarih için JSON verisi bulunamadı.")
+    st.success(f"✅ {len(filtered_dates)} gün için rapor bulundu.")
+
+    # Tarihe göre raporları filtrele ve klasör seçimi hazırla
+    reports = [r for r in reports_all if r["tarih"] in filtered_dates]
+    labels = [r["folder"] for r in reports]
+
+    # Varsayılan seçim: analizden gelen preselect_folder
+    preselect_folder = st.session_state.pop("preselect_folder", None)
+    default_idx = 0
+    if preselect_folder and preselect_folder in labels:
+        default_idx = labels.index(preselect_folder)
+
+    selected_label = st.selectbox("Görüntülenecek rapor klasörünü seçin:", labels, index=default_idx)
+    selected = next((r for r in reports if r["folder"] == selected_label), None)
+
+    if not selected:
+        st.warning("⚠️ Seçilen rapor bulunamadı.")
+        return
+
+    report_folder = DATA_REPORTS_DIR / selected["folder"]
+    if not report_folder.exists():
+        st.error(f"❌ Rapor klasörü bulunamadı: {selected['folder']}")
+        return
+
+    st.success(f"✅ Rapor: {selected['folder']}")
+    tab1, tab2, tab3 = st.tabs(["📈 Grafikler", "📄 PDF Raporu", "📊 JSON Verisi"])
+
+    with tab1:
+        show_graphs(report_folder, num_graphs=10)
+
+    with tab2:
+        pdf_candidates = list(report_folder.glob("*.pdf"))
+        if pdf_candidates:
+            pdf_path = pdf_candidates[0]
+            with open(pdf_path, "rb") as pdf_file:
+                pdf_bytes = pdf_file.read()
+            st.download_button(
+                label="📥 PDF Raporu İndir",
+                data=pdf_bytes,
+                file_name=pdf_path.name,
+                mime="application/pdf"
+            )
+            show_pdf(pdf_path)
         else:
-            st.error(f"❌ {selected_date} tarihli rapor klasörü bulunamadı.")
+            st.warning("⚠️ Bu klasörde PDF raporu bulunamadı.")
+
+    with tab3:
+        json_files = list(report_folder.glob("*.json"))
+        if json_files:
+            for json_file in json_files:
+                with st.expander(f"{json_file.name}"):
+                    try:
+                        with open(json_file) as f:
+                            data = json.load(f)
+                        st.json(data)
+                    except Exception as e:
+                        st.error(f"❌ JSON okuma hatası: {e}")
+        else:
+            st.warning("⚠️ Bu klasörde JSON verisi bulunamadı.")
 
 
 # ana_sayfa() fonksiyonu kaldırıldı - artık analiz_sayfasi() ile birleştirildi
@@ -1651,7 +1603,9 @@ def main():
             # Cache'lenen verileri koru - performans için kritik
             "existing_dates", "existing_reports", "raw_files",
             # Config ve processor cache'lerini koru
-            "config_loaded", "processors_loaded"
+            "config_loaded", "processors_loaded",
+            # Analiz sonrası arşivde kullanılacak bilgiler
+            "last_analysis", "preselect_date", "preselect_folder",
         }
         keys_to_delete = [k for k in st.session_state.keys() if k not in keys_to_keep]
         for key in keys_to_delete:
@@ -1691,6 +1645,14 @@ def main():
                 st.session_state.page = key
         
         st.markdown("---")
+        # Gelişmiş bölüm: Cache temizleme butonu
+        with st.expander("⚙️ Gelişmiş", expanded=False):
+            if st.button("🧹 Cache'i temizle ve yenile", use_container_width=True):
+                try:
+                    st.cache_data.clear()
+                    st.cache_resource.clear()
+                finally:
+                    st.rerun()
         st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
     
     # Ana içerik - sayfa yönlendirmeleri

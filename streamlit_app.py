@@ -16,6 +16,28 @@ import subprocess
 # Projenin ana dizinini PATH'e ekle (import modüller için)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 
+# TEK GİRİŞ NOKTASI: app.py'yi doğrudan dosya yolundan yükle (paket adı çakışmalarını önlemek için)
+_delegated = False
+try:
+    import importlib.util
+    import pathlib
+
+    app_path = pathlib.Path(__file__).with_name("app.py")
+    spec = importlib.util.spec_from_file_location("nakil_app_entry", str(app_path))
+    if spec and spec.loader:
+        _module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_module)
+        if hasattr(_module, "main"):
+            _module.main()
+            _delegated = True
+except Exception:
+    # Delegasyon başarısızsa bu dosyanın kendi akışıyla devam edilir
+    _delegated = False
+
+if _delegated:
+    # İkinci kez render etmeyi engelle
+    st.stop()
+
 # Proje modüllerini import et
 try:
     from src.core.config import (
@@ -48,6 +70,9 @@ def configure_page():
     st.markdown(
         """
         <style>
+        div[data-testid='stCodeBlock'] pre,
+        div[data-testid='stCodeBlock'] code,
+        pre, code { background-color:#0f172a; color:#e5e7eb; border:1px solid #334155; border-radius:6px; }
         .main-header {
             font-size: 2.5rem;
             color: #1E88E5;
@@ -396,12 +421,22 @@ def file_uploader_section():
             status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
             progress_bar.progress(25)
             
+            # Debug: ortam bilgisi
+            with st.expander("🔧 İşlem Detayları (Debug)", expanded=True):
+                st.code(f"""
+Dosya: {temp_path}
+Unique ID: {unique_id}
+Çalışma Dizini: {ROOT_DIR}
+Python: {sys.executable}
+                """)
+
             result = process_daily_data(temp_path, unique_id=unique_id)
             
             if result.returncode != 0:
                 st.error("❌ Veri işleme hatası!")
                 with st.expander("Hata Detayları", expanded=True):
-                    st.text(result.stderr)
+                    st.code(result.stderr or "stderr boş")
+                    st.code(result.stdout or "stdout boş")
                 return
             
             progress_bar.progress(50)
@@ -415,7 +450,8 @@ def file_uploader_section():
             gun_tarihi = datetime.now().strftime("%Y-%m-%d")
             
             # Analiz komutunu çalıştır (unique_id ile)
-            command = ["python", "main.py", "--analiz", gun_tarihi, "--unique-id", unique_id]
+            # Python yolu olarak sys.executable kullan
+            command = [sys.executable, "main.py", "--analiz", gun_tarihi, "--unique-id", unique_id]
             analiz_result = run_command(command)
             
             progress_bar.progress(100)
@@ -434,7 +470,8 @@ def file_uploader_section():
             else:
                 st.error("❌ Analiz hatası!")
                 with st.expander("Hata Detayları", expanded=True):
-                    st.text(analiz_result.stderr)
+                    st.code(analiz_result.stderr or "stderr boş")
+                    st.code(analiz_result.stdout or "stdout boş")
 
 def existing_files_section():
     """Mevcut Excel dosyaları bölümü"""
