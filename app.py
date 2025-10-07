@@ -1507,17 +1507,44 @@ def rapor_sayfasi():
 
     # Tarih listesi ve filtre
     dates = sorted({r["tarih"] for r in reports_all}, reverse=True)
-    col1, col2 = st.columns(2)
+    
+    # Kullanıcıya ne yaptığını açıkla
+    st.markdown("### 🗓️ Tarih Aralığı Filtresi")
+    st.info(f"""
+    **Bu filtre ne işe yarar?**  
+    • Toplam **{len(reports_all)}** rapor arşivlenmiş  
+    • En eski: **{dates[-1]}** | En yeni: **{dates[0]}**  
+    • Tarih aralığı seçerek raporları filtreleyebilirsiniz (örn: son 1 hafta, son 1 ay)  
+    • Aynı gün birden fazla rapor yüklediyseniz saate göre ayırt edebilirsiniz
+    """)
+    
+    col1, col2, col3 = st.columns([2, 2, 1])
     with col1:
         start_date = st.date_input(
-            "Başlangıç tarihi:",
+            "📅 Başlangıç tarihi:",
             value=datetime.strptime(dates[-1], "%Y-%m-%d").date(),
+            help="Bu tarihten itibaren yüklenmiş raporları göster"
         )
     with col2:
         end_date = st.date_input(
-            "Bitiş tarihi:",
+            "📅 Bitiş tarihi:",
             value=datetime.strptime(dates[0], "%Y-%m-%d").date(),
+            help="Bu tarihe kadar yüklenmiş raporları göster"
         )
+    with col3:
+        st.markdown("**Hızlı Seçim:**")
+        if st.button("Son 7 gün", use_container_width=True):
+            st.session_state.quick_date_range = 7
+            st.rerun()
+        if st.button("Son 30 gün", use_container_width=True):
+            st.session_state.quick_date_range = 30
+            st.rerun()
+    
+    # Hızlı seçim var mı kontrol et
+    if "quick_date_range" in st.session_state:
+        days = st.session_state.pop("quick_date_range")
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=days)
 
     filtered_dates = [d for d in dates if start_date <= datetime.strptime(d, "%Y-%m-%d").date() <= end_date]
     if not filtered_dates:
@@ -1527,15 +1554,43 @@ def rapor_sayfasi():
 
     # Tarihe göre raporları filtrele ve klasör seçimi hazırla
     reports = [r for r in reports_all if r["tarih"] in filtered_dates]
-    labels = [r["folder"] for r in reports]
+    
+    # Kullanıcı dostu etiketler oluştur: Tarih | Saat | Excel Dosya Adı
+    labels_display = []
+    labels_folder = []
+    for r in reports:
+        # Unique ID'den saat bilgisini çıkar (ör: 20251007_142533 -> 14:25:33)
+        saat = "Saat Yok"
+        if r["unique_id"] and "_" in r["unique_id"]:
+            parts = r["unique_id"].split("_")
+            if len(parts[0]) >= 6:  # HHMMSS formatı
+                saat_str = parts[0][8:14] if len(parts[0]) >= 14 else parts[0][-6:] if len(parts[0]) >= 6 else ""
+                if len(saat_str) == 6:
+                    saat = f"{saat_str[0:2]}:{saat_str[2:4]}:{saat_str[4:6]}"
+        
+        # Excel dosya adını kısalt (çok uzunsa)
+        excel_name = r["excel"] if r["excel"] else "Excel Yok"
+        if len(excel_name) > 40:
+            excel_name = excel_name[:37] + "..."
+        
+        # Görüntüleme etiketi
+        display = f"📅 {r['tarih']} | ⏰ {saat} | 📄 {excel_name}"
+        labels_display.append(display)
+        labels_folder.append(r["folder"])
 
     # Varsayılan seçim: analizden gelen preselect_folder
     preselect_folder = st.session_state.pop("preselect_folder", None)
     default_idx = 0
-    if preselect_folder and preselect_folder in labels:
-        default_idx = labels.index(preselect_folder)
+    if preselect_folder and preselect_folder in labels_folder:
+        default_idx = labels_folder.index(preselect_folder)
 
-    selected_label = st.selectbox("Görüntülenecek rapor klasörünü seçin:", labels, index=default_idx)
+    selected_display = st.selectbox(
+        "Görüntülenecek rapor klasörünü seçin:", 
+        labels_display, 
+        index=default_idx,
+        help="Aynı gün birden fazla rapor yüklediyseniz saate ve dosya adına bakarak seçim yapabilirsiniz"
+    )
+    selected_label = labels_folder[labels_display.index(selected_display)]
     selected = next((r for r in reports if r["folder"] == selected_label), None)
 
     if not selected:
