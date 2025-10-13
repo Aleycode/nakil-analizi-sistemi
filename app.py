@@ -1110,7 +1110,7 @@ def run_analysis(date):
 
 
 def show_pdf(file_path):
-    """PDF dosyasını göster"""
+    """PDF dosyasını göster - İyileştirilmiş versiyon"""
     try:
         if not Path(file_path).exists():
             st.error(f"❌ PDF dosyası bulunamadı: {file_path}")
@@ -1121,36 +1121,88 @@ def show_pdf(file_path):
         if file_size == 0:
             st.error("❌ PDF dosyası boş")
             return
-            
-        st.info(f"📄 PDF yükleniyor... (Boyut: {file_size / 1024:.1f} KB)")
         
+        # PDF dosyasını oku
         with open(file_path, "rb") as f:
-            base64_pdf = base64.b64encode(f.read()).decode('utf-8')
+            pdf_bytes = f.read()
         
-        # PDF iframe'i oluştur
-        pdf_display = f'''
-        <div style="background-color: #f0f0f0; padding: 10px; border-radius: 5px;">
-            <p style="text-align: center; margin-bottom: 10px;">PDF Görüntüleyici</p>
-            <iframe src="data:application/pdf;base64,{base64_pdf}" 
-                    width="100%" 
-                    height="800" 
-                    type="application/pdf"
-                    style="border: 1px solid #ccc;">
-                <p>Tarayıcınız PDF görüntülemeyi desteklemiyor. 
-                   <a href="data:application/pdf;base64,{base64_pdf}" download="rapor.pdf">
-                   PDF'i indirmek için tıklayın</a>
-                </p>
-            </iframe>
-        </div>
-        '''
+        # Dosya bilgisi
+        st.success(f"✅ PDF başarıyla yüklendi (Boyut: {file_size / 1024:.1f} KB)")
         
-        st.markdown(pdf_display, unsafe_allow_html=True)
+        # ÖNCE İNDİRME BUTONU - Her zaman çalışır
+        st.download_button(
+            label="📥 PDF Raporunu İndir",
+            data=pdf_bytes,
+            file_name=Path(file_path).name,
+            mime="application/pdf",
+            use_container_width=True,
+            type="primary"
+        )
         
-        # Alternatif görüntüleme seçeneği
-        with st.expander("🔧 PDF görünmüyor mu? Alternatif yöntemler"):
-            st.write("1. **İndirme butonu** ile PDF'i indirin")
-            st.write("2. **Tarayıcı ayarları** - PDF engelleri kontrol edin")
-            st.write("3. **Farklı tarayıcı** deneyın (Chrome/Firefox)")
+        st.markdown("---")
+        
+        # SONRA GÖRÜNTÜLEME SEÇENEKLERİ
+        gorunum_modu = st.radio(
+            "PDF Görüntüleme Modu:",
+            ["📄 Tarayıcı Önizleme (Önerilen)", "🖼️ Sayfa Sayfa Görünüm", "💾 Sadece İndir"],
+            horizontal=True
+        )
+        
+        if gorunum_modu == "📄 Tarayıcı Önizleme (Önerilen)":
+            # Base64 encode
+            base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+            
+            # Google Drive Viewer kullan (daha güvenilir)
+            pdf_display = f'''
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border: 2px solid #dee2e6;">
+                <iframe src="https://docs.google.com/viewer?url=data:application/pdf;base64,{base64_pdf}&embedded=true" 
+                        width="100%" 
+                        height="800" 
+                        style="border: none; border-radius: 5px;">
+                </iframe>
+            </div>
+            '''
+            
+            st.markdown(pdf_display, unsafe_allow_html=True)
+            
+            # Alternatif çözüm
+            with st.expander("⚠️ PDF görünmüyor mu?"):
+                st.info("**Çözüm 1:** Yukarıdaki '📥 PDF Raporunu İndir' butonunu kullanın")
+                st.info("**Çözüm 2:** '🖼️ Sayfa Sayfa Görünüm' modunu deneyin")
+                st.warning("**Not:** Bazı tarayıcılar güvenlik nedeniyle PDF iframe'lerini engelleyebilir")
+        
+        elif gorunum_modu == "🖼️ Sayfa Sayfa Görünüm":
+            st.info("🔄 PDF'i görüntüye dönüştürüyor...")
+            try:
+                # PDF'i PIL/PyMuPDF ile görüntülere dönüştür
+                import fitz  # PyMuPDF
+                
+                pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
+                
+                st.success(f"📄 Toplam {len(pdf_document)} sayfa bulundu")
+                
+                # Sayfa seçimi
+                sayfa_no = st.slider("Sayfa Seçin:", 1, len(pdf_document), 1)
+                
+                # Seçilen sayfayı göster
+                page = pdf_document[sayfa_no - 1]
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom
+                img_bytes = pix.tobytes("png")
+                
+                st.image(img_bytes, caption=f"Sayfa {sayfa_no} / {len(pdf_document)}", use_container_width=True)
+                
+                pdf_document.close()
+                
+            except ImportError:
+                st.error("❌ PyMuPDF (fitz) kütüphanesi yüklü değil")
+                st.info("💡 Lütfen '� PDF Raporunu İndir' butonunu kullanın")
+            except Exception as e:
+                st.error(f"❌ PDF işleme hatası: {e}")
+                st.info("💡 Lütfen '📥 PDF Raporunu İndir' butonunu kullanın")
+        
+        else:  # Sadece İndir
+            st.success("✅ PDF indirme butonu yukarıda hazır!")
+            st.info("👆 '📥 PDF Raporunu İndir' butonuna tıklayarak raporu indirebilirsiniz")
         
     except Exception as e:
         st.error(f"❌ PDF gösterilirken hata oluştu: {str(e)}")
