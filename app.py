@@ -1141,37 +1141,15 @@ def show_pdf(file_path):
         
         st.markdown("---")
         
-        # SONRA GÖRÜNTÜLEME SEÇENEKLERİ
+        # GÖRÜNTÜLEME SEÇENEKLERİ - Sadece çalışan modlar
         gorunum_modu = st.radio(
             "PDF Görüntüleme Modu:",
-            ["📄 Tarayıcı Önizleme (Önerilen)", "🖼️ Sayfa Sayfa Görünüm", "💾 Sadece İndir"],
-            horizontal=True
+            ["️ Sayfa Sayfa Görünüm (Önerilen)", "💾 Sadece İndir"],
+            horizontal=True,
+            help="Tarayıcı güvenlik kısıtlamaları nedeniyle sayfa sayfa görünüm önerilir"
         )
         
-        if gorunum_modu == "📄 Tarayıcı Önizleme (Önerilen)":
-            # Base64 encode
-            base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-            
-            # Google Drive Viewer kullan (daha güvenilir)
-            pdf_display = f'''
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border: 2px solid #dee2e6;">
-                <iframe src="https://docs.google.com/viewer?url=data:application/pdf;base64,{base64_pdf}&embedded=true" 
-                        width="100%" 
-                        height="800" 
-                        style="border: none; border-radius: 5px;">
-                </iframe>
-            </div>
-            '''
-            
-            st.markdown(pdf_display, unsafe_allow_html=True)
-            
-            # Alternatif çözüm
-            with st.expander("⚠️ PDF görünmüyor mu?"):
-                st.info("**Çözüm 1:** Yukarıdaki '📥 PDF Raporunu İndir' butonunu kullanın")
-                st.info("**Çözüm 2:** '🖼️ Sayfa Sayfa Görünüm' modunu deneyin")
-                st.warning("**Not:** Bazı tarayıcılar güvenlik nedeniyle PDF iframe'lerini engelleyebilir")
-        
-        elif gorunum_modu == "🖼️ Sayfa Sayfa Görünüm":
+        if gorunum_modu == "🖼️ Sayfa Sayfa Görünüm (Önerilen)":
             st.info("🔄 PDF'i görüntüye dönüştürüyor...")
             try:
                 # PDF'i PIL/PyMuPDF ile görüntülere dönüştür
