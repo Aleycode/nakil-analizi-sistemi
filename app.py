@@ -1196,8 +1196,13 @@ def show_graphs(date_folder, num_graphs=6):
     cols = st.columns(2)
     for i, graph in enumerate(display_graphs):
         with cols[i % 2]:
-            # use_column_width=True (eski Streamlit uyumlu)
-            st.image(str(graph), caption=graph.name, use_column_width=True)
+            # GÜVENLІ: Hem eski hem yeni Streamlit versiyonlarıyla uyumlu
+            try:
+                # Yeni Streamlit (1.35+) için use_container_width dene
+                st.image(str(graph), caption=graph.name, use_container_width=True)
+            except TypeError:
+                # Eski Streamlit için use_column_width kullan
+                st.image(str(graph), caption=graph.name, use_column_width=True)
 
 
 def show_statistics(date_or_folder):
