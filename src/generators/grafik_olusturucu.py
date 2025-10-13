@@ -356,7 +356,7 @@ class GrafikOlusturucu:
             logger.error(f"İptal eden çubuk grafiği oluşturma hatası: {e}")
             return None
 
-    def pasta_grafik_olustur(self, veriler: pd.Series, baslik: str, dosya_adi: str):
+    def pasta_grafik_olustur(self, veriler: pd.Series, baslik: str, dosya_adi: str, gun_tarihi: str = None):
         """Pasta grafiği oluşturur - hem sayı hem yüzde gösterir"""
         import os
         try:
@@ -393,8 +393,9 @@ class GrafikOlusturucu:
             plt.title(baslik, fontsize=14, fontweight="bold")
             plt.axis("equal")
 
-            # Tarih bilgisini dosya adından çıkar
-            gun_tarihi = dosya_adi.split("_")[-1].replace(".png", "")
+            # Tarih bilgisini parametre veya dosya adından çıkar
+            if gun_tarihi is None:
+                gun_tarihi = dosya_adi.split("_")[-1].replace(".png", "")
 
             # Tarih klasörü oluştur ve dosyaya kaydet
             tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
@@ -459,13 +460,9 @@ class GrafikOlusturucu:
         except Exception as e:
             logger.warning(f"Tarih ekleme hatası: {e}")
 
-    def _tarih_klasoru_olustur(self, gun_tarihi: str) -> Path:
-        """Verilen tarih için rapor klasörü oluşturur"""
-        tarih_klasor = RAPOR_DIZIN / gun_tarihi
-        tarih_klasor.mkdir(parents=True, exist_ok=True)
-        return tarih_klasor
 
-    def threshold_pasta_grafik(self, threshold_data: dict, baslik: str, dosya_adi: str):
+
+    def threshold_pasta_grafik(self, threshold_data: dict, baslik: str, dosya_adi: str, gun_tarihi: str = None):
         """Bekleme süresi threshold pasta grafiği"""
         try:
             if not threshold_data:
@@ -477,7 +474,7 @@ class GrafikOlusturucu:
             veriler = pd.Series(threshold_data)
 
             # Pasta grafik oluştur
-            return self.pasta_grafik_olustur(veriler, baslik, dosya_adi)
+            return self.pasta_grafik_olustur(veriler, baslik, dosya_adi, gun_tarihi)
         except Exception as e:
             logger.error(f"Threshold pasta grafik hatası: {e}")
             return None
@@ -503,7 +500,7 @@ class GrafikOlusturucu:
             dosya_adi = f"vaka-tipi-dagilimi_{turkce_dosya_adi}_{gun_tarihi}.png"
 
             # Pasta grafik oluştur
-            return self.pasta_grafik_olustur(vaka_tipi_sayimlari, baslik, dosya_adi)
+            return self.pasta_grafik_olustur(vaka_tipi_sayimlari, baslik, dosya_adi, gun_tarihi)
 
         except Exception as e:
             logger.error(f"Vaka tipi pasta grafiği hatası: {e}")
@@ -548,7 +545,7 @@ class GrafikOlusturucu:
             dosya_adi = f"il-dagilimi_Butun_Vakalar_{gun_tarihi}.png"
 
             # Pasta grafik oluştur
-            return self.pasta_grafik_olustur(il_dagilim_series, baslik, dosya_adi)
+            return self.pasta_grafik_olustur(il_dagilim_series, baslik, dosya_adi, gun_tarihi)
 
         except Exception as e:
             logger.error(f"Bölge dağılımı çubuk grafiği hatası: {e}")
@@ -600,7 +597,7 @@ class GrafikOlusturucu:
             dosya_adi = f"solunum-islemi-dagilimi_{turkce_dosya_adi}_{gun_tarihi}.png"
 
             # Pasta grafik oluştur
-            self.pasta_grafik_olustur(solunum_sayimlari, baslik, dosya_adi)
+            self.pasta_grafik_olustur(solunum_sayimlari, baslik, dosya_adi, gun_tarihi)
 
             # Dosya yolunu döndür
             tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)

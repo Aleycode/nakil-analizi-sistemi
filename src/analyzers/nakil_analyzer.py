@@ -170,6 +170,7 @@ class NakilAnalizcisi:
                                 durum_series,
                                 baslik,
                                 grafik_path,
+                                gun_tarihi
                             ))
                             if grafik_path_str:
                                 rapor["oluşturulan_grafikler"].append(grafik_path_str)
