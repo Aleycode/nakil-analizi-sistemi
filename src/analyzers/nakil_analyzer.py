@@ -59,12 +59,10 @@ class NakilAnalizcisi:
                 if gunluk_dosya.exists():
                     logger.info(f"Unique_id'li günlük dosya okunuyor: {gunluk_dosya}")
                     df_gunluk = pd.read_parquet(gunluk_dosya)
-                    # Tarih sütunlarını normalize et
-                    try:
-                        from ..processors.veri_isleme import VeriIsleme as _VI
-                        df_gunluk = _VI().ensure_datetime_columns(df_gunluk)
-                    except Exception as _:
-                        pass
+                    # KRİTİK: Tarih sütunlarını datetime'a çevir
+                    logger.info("Tarih sütunları datetime'a dönüştürülüyor...")
+                    df_gunluk = self.veri_isleme.ensure_datetime_columns(df_gunluk)
+                    logger.info(f"Datetime dönüşümü tamamlandı. Veri boyutu: {len(df_gunluk)}")
                 else:
                     logger.error(f"Unique_id'li günlük dosya bulunamadı: {gunluk_dosya}")
                     logger.error(f"Aranan klasör: {gunluk_klasor}")
@@ -83,12 +81,24 @@ class NakilAnalizcisi:
                     logger.warning("Ana veri boş, analiz yapılamıyor.")
                     return {"durum": "hata", "mesaj": "Ana veri boş, analiz yapılamıyor. 'data/processed/ana_veri.parquet' dosyası yok veya boş."}
                 
+                # KRİTİK: Tarih sütunlarını datetime'a çevir
+                logger.info("Ana veri tarih sütunları datetime'a dönüştürülüyor...")
+                df = self.veri_isleme.ensure_datetime_columns(df)
+                
                 df_gunluk = self.veri_isleme.gunluk_zaman_araligi_filtrele(df, gun_tarihi)
                 df_gunluk = self.veri_isleme.vaka_tipi_belirle(df_gunluk, gun_tarihi)
             
-            # Süre hesaplamalarını ekle
+            # Süre hesaplamalarını ekle ve durum_kategori oluştur
             gun_datetime = datetime.strptime(gun_tarihi, "%Y-%m-%d")
+            logger.info(f"Süre hesaplamaları ekleniyor... (gun_datetime: {gun_datetime})")
             df_gunluk = self.veri_isleme.sure_hesaplama_ekle(df_gunluk, gun_datetime)
+            
+            # Durum kategori kontrolü
+            if 'durum_kategori' not in df_gunluk.columns:
+                logger.warning("durum_kategori sütunu bulunamadı! Manuel olarak ekleniyor...")
+                df_gunluk['durum_kategori'] = 'Bilinmiyor'
+            
+            logger.info(f"Veri hazırlığı tamamlandı. Sütunlar: {df_gunluk.columns.tolist()}")
             
             il_gruplari = self.veri_isleme.il_bazinda_grupla(df_gunluk)
 
@@ -169,13 +179,14 @@ class NakilAnalizcisi:
                         # Dict'i pandas Series'e çevir (pd zaten global import edilmiş)
                         durum_series = pd.Series(durum_analizi["durum_sayilari"])
                         grafik_path = f"vaka_durumu_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png"
-                        self.grafik_olusturucu.pasta_grafik_olustur(
+                        grafik_path_str = str(self.grafik_olusturucu.pasta_grafik_olustur(
                             durum_series,
                             baslik,
                             grafik_path,
-                        )
-                        import os
-                        if not os.path.exists(grafik_path):
+                        ))
+                        if grafik_path_str:
+                            rapor["oluşturulan_grafikler"].append(grafik_path_str)
+                        else:
                             logger.warning(f"Grafik oluşturulamadı: {grafik_path} (veri: {len(durum_series)})")
 
                     # 2. İptal vakalar için bekleme süresi
@@ -204,14 +215,15 @@ class NakilAnalizcisi:
                                 vaka_tipi=vaka_tipi,
                             )
                             grafik_path = f"bekleme_threshold_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png"
-                            self.grafik_olusturucu.threshold_pasta_grafik(
+                            grafik_path_str = str(self.grafik_olusturucu.threshold_pasta_grafik(
                                 yer_analizi["threshold_analizi"],
                                 baslik,
                                 grafik_path,
-                            )
-                            import os
-                            if not os.path.exists(grafik_path):
-                                logger.warning(f"Threshold grafik oluşturulamadı: {grafik_path} (veri: {yer_analizi['threshold_analizi']})")
+                            ))
+                        if grafik_path_str:
+                            rapor["oluşturulan_grafikler"].append(grafik_path_str)
+                        else:
+                            logger.warning(f"Threshold grafik oluşturulamadı: {grafik_path} (veri: {yer_analizi['threshold_analizi']})")
 
                     # 4. Klinik dağılım analizi
                     klinik_analizi = self.klinik_analizcisi.klinik_dagilim_analizi(
@@ -341,6 +353,34 @@ class NakilAnalizcisi:
             
             # Grafik oluşturucu override'ını temizle
             self.grafik_olusturucu._rapor_dizin_override = None
+
+            # ÖNEMLİ: Grafikleri unique_id klasörüne kopyala (Rapor Arşivi için)
+            try:
+                import shutil
+                
+                # Tarih bazlı klasör (grafiklerin olduğu yer)
+                from ..core.config import RAPOR_DIZIN
+                tarih_bazli_klasor = RAPOR_DIZIN / gun_tarihi
+                
+                # unique_id'li klasör (PDF'in olduğu yer)
+                unique_id_klasor = tarih_klasor  # Bu zaten Path objesi
+                
+                if tarih_bazli_klasor.exists() and unique_id_klasor.exists():
+                    grafik_sayisi = 0
+                    for grafik_dosya in tarih_bazli_klasor.glob("*.png"):
+                        hedef = unique_id_klasor / grafik_dosya.name
+                        if not hedef.exists():
+                            shutil.copy2(grafik_dosya, hedef)
+                            grafik_sayisi += 1
+                    
+                    if grafik_sayisi > 0:
+                        logger.info(f"✅ {grafik_sayisi} grafik kopyalandı: {tarih_bazli_klasor} → {unique_id_klasor}")
+                    else:
+                        logger.warning(f"⚠️ Kopyalanacak grafik bulunamadı: {tarih_bazli_klasor}")
+                else:
+                    logger.warning(f"⚠️ Klasörlerden biri mevcut değil. Tarih: {tarih_bazli_klasor.exists()}, Unique: {unique_id_klasor.exists()}")
+            except Exception as copy_error:
+                logger.warning(f"Grafik kopyalama hatası (kritik değil): {copy_error}")
 
             logger.info(f"Kapsamlı analiz tamamlandı: {rapor_dosya}")
             

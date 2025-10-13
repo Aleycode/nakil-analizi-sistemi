@@ -204,8 +204,13 @@ class PDFOlusturucu:
                 logger.warning("Hiç grafik dosyası bulunamadı")
                 story.append(Paragraph("Analiz için uygun grafik bulunamadı.", self.metin_stili))
             else:
-                # Sadece dosya yollarını al
-                grafik_yollari = [str(grafik_path) for grafik_path, _ in grafik_dosyalari]
+                # Sadece dosya yollarını al - GÜVENLİ TUPLE ÇÖZME
+                grafik_yollari = []
+                for item in grafik_dosyalari:
+                    if isinstance(item, tuple):
+                        grafik_yollari.append(str(item[0]))
+                    else:
+                        grafik_yollari.append(str(item))
                 story.extend(self._grafikleri_grid_olarak_ekle(grafik_yollari, gun_tarihi))
 
             doc.build(story)
@@ -302,6 +307,10 @@ class PDFOlusturucu:
                 for k in range(j, j + 2):
                     if k < len(grafik_grubu):
                         grafik_path = grafik_grubu[k]
+                        
+                        # Eğer tuple ise ilk elemanı al
+                        if isinstance(grafik_path, tuple):
+                            grafik_path = grafik_path[0]
                         
                         # Dosya adını daha okunaklı hale getir
                         dosya_adi = Path(grafik_path).stem

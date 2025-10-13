@@ -148,10 +148,12 @@ class GrafikOlusturucu:
         """Verilen tarih için klasör oluşturur ve path döner"""
         # Eğer özel rapor dizini set edilmişse onu kullan
         if self._rapor_dizin_override:
+            logger.info(f"Override kullanılıyor: {self._rapor_dizin_override}")
             return self._rapor_dizin_override
         
         tarih_klasor = RAPOR_DIZIN / gun_tarihi
         tarih_klasor.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Varsayılan rapor klasörü kullanılıyor: {tarih_klasor}")
         return tarih_klasor
 
     def iptal_eden_cubuk_grafigi(
