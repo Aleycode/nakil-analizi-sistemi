@@ -1194,7 +1194,7 @@ def _get_graph_files(date_folder_path):
     date_folder = Path(date_folder_path)
     return [str(f) for f in date_folder.glob("*.png")]
 
-def show_graphs(date_folder, num_graphs=6):
+def show_graphs(date_folder, num_graphs=50):
     """Tarih klasöründen grafikleri göster - PERFORMANS OPTİMİZE"""
     png_files = _get_graph_files(str(date_folder))
     
@@ -1232,7 +1232,7 @@ def show_graphs(date_folder, num_graphs=6):
     # Kaç grafik gösterileceğini seç
     total_graphs = len(png_files)
     if total_graphs > num_graphs:
-        show_all = st.checkbox("Tüm grafikleri göster", value=False, key=f"show_all_{folder_key}")
+        show_all = st.checkbox("Tüm grafikleri göster", value=True, key=f"show_all_{folder_key}")
         if show_all:
             display_graphs = png_files
         else:
@@ -1642,7 +1642,7 @@ def rapor_sayfasi():
     tab1, tab2, tab3 = st.tabs(["📈 Grafikler", "📄 PDF Raporu", "📊 JSON Verisi"])
 
     with tab1:
-        show_graphs(report_folder, num_graphs=10)
+        show_graphs(report_folder, num_graphs=50)  # Tüm grafikleri göstermek için yüksek sayı
 
     with tab2:
         pdf_candidates = list(report_folder.glob("*.pdf"))
