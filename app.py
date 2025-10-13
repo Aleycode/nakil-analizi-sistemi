@@ -746,7 +746,7 @@ def configure_page():
     
     # CSS'in geri kalanını normal string olarak ekle - keyframes CSS problemsiz
     css_rest = '''
-        /* 🎨 GRAFİK HOVER EFEKTİ - Mouse ile üzerine gelince büyür */
+        /* 🎨 GRAFİK HOVER EFEKTİ - Mouse ile üzerine gelince %28 büyür */
         .stImage {
             transition: all 0.3s ease-in-out;
             cursor: pointer;
@@ -755,8 +755,8 @@ def configure_page():
         }
         
         .stImage:hover {
-            transform: scale(1.08);
-            box-shadow: 0 8px 25px rgba(100, 181, 246, 0.4);
+            transform: scale(1.28);
+            box-shadow: 0 12px 35px rgba(100, 181, 246, 0.5);
             z-index: 100;
         }
         
@@ -767,7 +767,7 @@ def configure_page():
         }
         
         .stImage:hover img {
-            filter: brightness(1.05);
+            filter: brightness(1.08);
         }
         
         .footer {
