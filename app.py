@@ -746,6 +746,30 @@ def configure_page():
     
     # CSS'in geri kalanını normal string olarak ekle - keyframes CSS problemsiz
     css_rest = '''
+        /* 🎨 GRAFİK HOVER EFEKTİ - Mouse ile üzerine gelince büyür */
+        .stImage {
+            transition: all 0.3s ease-in-out;
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .stImage:hover {
+            transform: scale(1.08);
+            box-shadow: 0 8px 25px rgba(100, 181, 246, 0.4);
+            z-index: 100;
+        }
+        
+        /* Grafik container'ı için smooth transition */
+        .stImage img {
+            transition: all 0.3s ease-in-out;
+            border-radius: 8px;
+        }
+        
+        .stImage:hover img {
+            filter: brightness(1.05);
+        }
+        
         .footer {
             position: fixed;
             right: 15px;
