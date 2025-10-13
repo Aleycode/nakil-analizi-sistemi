@@ -406,6 +406,9 @@ class VeriIsleme:
             if gun_tarihi is None:
                 gun_tarihi = datetime.now().strftime("%Y-%m-%d")
 
+            # KRİTİK: Tarih sütunlarının datetime olduğundan emin ol
+            df = self.ensure_datetime_columns(df)
+
             # Dün 08:00 referans noktası
             dun_08 = pd.to_datetime(f"{gun_tarihi} 08:00:00") - timedelta(days=1)
 
@@ -639,6 +642,9 @@ class VeriIsleme:
             Süre bilgileri eklenmiş veri çerçevesi
         """
         try:
+            # KRİTİK: Tarih sütunlarının datetime olduğundan emin ol
+            df = self.ensure_datetime_columns(df)
+            
             df_kopya = df.copy()
             
             # Yer bulma süresi (dakika) - tamamlanmış vakalar için

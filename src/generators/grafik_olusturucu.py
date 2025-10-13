@@ -4,6 +4,8 @@ Grafik oluşturucu modülü - Tüm grafik oluşturma fonksiyonları
 
 import logging
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # GUI olmayan backend
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
@@ -407,9 +409,14 @@ class GrafikOlusturucu:
             # Dosya gerçekten oluştu mu kontrol et
             if not os.path.exists(dosya_yolu):
                 logger.error(f"Pasta grafiği dosyası kaydedilemedi: {dosya_yolu} (veri boyutu: {len(veriler)})")
+                return None
+            else:
+                logger.info(f"Pasta grafiği başarıyla oluşturuldu: {dosya_yolu}")
+                return dosya_yolu
 
         except Exception as e:
             logger.error(f"Pasta grafiği oluşturma hatası: {e} (dosya: {dosya_adi}, veri boyutu: {len(veriler)})")
+            return None
 
     def _grafige_tarih_ekle(self, plt_obj, gun_tarihi: str):
         """Grafiklere tarih bilgisi ekler"""
@@ -470,9 +477,10 @@ class GrafikOlusturucu:
             veriler = pd.Series(threshold_data)
 
             # Pasta grafik oluştur
-            self.pasta_grafik_olustur(veriler, baslik, dosya_adi)
+            return self.pasta_grafik_olustur(veriler, baslik, dosya_adi)
         except Exception as e:
             logger.error(f"Threshold pasta grafik hatası: {e}")
+            return None
 
     def vaka_tipi_pasta_grafigi(self, df: pd.DataFrame, gun_tarihi: str, grup_adi: str):
         """Vaka tipi dağılımı pasta grafiği (Yeni/Devreden)"""
@@ -489,17 +497,13 @@ class GrafikOlusturucu:
 
             # Grup adını Türkçe'ye çevir
             bolge_adi = GRUP_ADI_CEVIRI.get(grup_adi, grup_adi)
+            turkce_dosya_adi = GRUP_ADI_CEVIRI.get(grup_adi, grup_adi)
 
             baslik = f"Vaka Tipi Dağılımı - {bolge_adi}"
-            turkce_dosya_adi = GRUP_ADI_CEVIRI.get(grup_adi, grup_adi)
-            dosya_adi = f"il-dagilimi_{turkce_dosya_adi}_{gun_tarihi}.png"
+            dosya_adi = f"vaka-tipi-dagilimi_{turkce_dosya_adi}_{gun_tarihi}.png"
 
             # Pasta grafik oluştur
-            self.pasta_grafik_olustur(vaka_tipi_sayimlari, baslik, dosya_adi)
-
-            # Dosya yolunu döndür
-            tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
-            return tarih_klasor / dosya_adi
+            return self.pasta_grafik_olustur(vaka_tipi_sayimlari, baslik, dosya_adi)
 
         except Exception as e:
             logger.error(f"Vaka tipi pasta grafiği hatası: {e}")
@@ -544,11 +548,7 @@ class GrafikOlusturucu:
             dosya_adi = f"il-dagilimi_Butun_Vakalar_{gun_tarihi}.png"
 
             # Pasta grafik oluştur
-            self.pasta_grafik_olustur(il_dagilim_series, baslik, dosya_adi)
-
-            # Dosya yolunu döndür
-            tarih_klasor = self._tarih_klasoru_olustur(gun_tarihi)
-            return tarih_klasor / dosya_adi
+            return self.pasta_grafik_olustur(il_dagilim_series, baslik, dosya_adi)
 
         except Exception as e:
             logger.error(f"Bölge dağılımı çubuk grafiği hatası: {e}")
@@ -944,8 +944,6 @@ class GrafikOlusturucu:
             if il_ici_degerler[0] > 0:
                 ax.text(
                     il_ici_degerler[0] / 2,
-                    1,
-                    str(il_ici_degerler[0]),
                     ha="center",
                     va="center",
                     fontweight="bold",

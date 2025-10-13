@@ -84,6 +84,32 @@ def gunluk_islem_yap(excel_dosya: str, unique_id: str = None) -> None:
     """
     try:
         logger.info(f"Günlük işlem başlatılıyor: {excel_dosya}")
+        
+        # Raporlar klasörünü kontrol et ve oluştur
+        import os
+        from pathlib import Path
+        
+        # Excel dosyası mevcut mu kontrol et
+        if not os.path.exists(excel_dosya):
+            logger.error(f"Excel dosyası bulunamadı: {excel_dosya}")
+            print(f"❌ Hata: Excel dosyası bulunamadı: {excel_dosya}")
+            return
+        
+        # Rapor klasörü için tarih oluştur
+        gun_tarihi = datetime.now().strftime("%Y-%m-%d")
+        
+        # Eğer unique_id varsa rapor klasörünü şimdiden oluştur
+        if unique_id:
+            rapor_klasoru = Path("data/reports") / f"{gun_tarihi}_{unique_id}"
+            os.makedirs(rapor_klasoru, exist_ok=True)
+            logger.info(f"Rapor klasörü önceden oluşturuldu: {rapor_klasoru}")
+            
+            # Kontrol amaçlı bir dosya oluştur
+            try:
+                with open(rapor_klasoru / "rapor_hazirlaniyor.txt", "w") as f:
+                    f.write(f"Rapor {gun_tarihi} tarihinde hazırlanıyor.\nExcel dosya: {excel_dosya}\nUnique ID: {unique_id}")
+            except Exception as e:
+                logger.warning(f"Kontrol dosyası oluşturulamadı: {e}")
 
         # Veri işleyici oluştur
         isleyici = VeriIsleme()
@@ -148,6 +174,7 @@ def gunluk_nakil_analizi_yap(
     Args:
         gun_tarihi: Analiz günü (YYYY-MM-DD formatında), None ise bugün
         gun_tipi: "dun" veya "bugun" - analiz tipini belirler
+        unique_id: Benzersiz işlem kimliği (opsiyonel)
         
     Returns:
         Dict: Analiz sonuçlarını içeren sözlük, başarısız olursa boş sözlük
@@ -169,8 +196,48 @@ def gunluk_nakil_analizi_yap(
         logger.info(f"Günlük nakil analizi başlatılıyor: {gun_tarihi} ({gun_tipi})")
         logger.info(f"Zaman aralığı: {baslangic_tarihi} 08:00 - {gun_tarihi} 08:00")
 
+        # Rapor klasörünü oluştur ve bu analiz için gerekli bilgileri kaydet
+        import os
+        import json
+        
+        # Önce tarih klasörünü oluştur (her durumda)
+        tarih_klasoru = Path("data/reports") / f"{gun_tarihi}"
+        os.makedirs(tarih_klasoru, exist_ok=True)
+        
+        # Unique_id varsa, unique_id'li klasörü de oluştur
+        rapor_klasor = tarih_klasoru  # Varsayılan olarak tarih klasörü
+        if unique_id:
+            rapor_klasor = Path("data/reports") / f"{gun_tarihi}_{unique_id}"
+            os.makedirs(rapor_klasor, exist_ok=True)
+            
+            # Analiz hazırlık bilgilerini kaydet
+            hazirlik_bilgisi = {
+                "tarih": gun_tarihi,
+                "unique_id": unique_id,
+                "baslangic_zamani": datetime.now().isoformat(),
+                "gun_tipi": gun_tipi,
+                "baslangic_tarihi": baslangic_tarihi,
+                "durum": "hazirlaniyor"
+            }
+            
+            try:
+                with open(rapor_klasor / "analiz_bilgi.json", "w", encoding="utf-8") as f:
+                    json.dump(hazirlik_bilgisi, f, ensure_ascii=False, indent=2)
+                    
+                # Kontrol dosyası oluştur (grafikler olana kadar görüntülenecek)
+                with open(rapor_klasor / "rapor_hazirlaniyor.txt", "w", encoding="utf-8") as f:
+                    f.write(f"Rapor {gun_tarihi} tarihinde hazırlanıyor.\n")
+                    f.write(f"Analiz tarihi: {gun_tarihi}\n")
+                    f.write(f"Unique ID: {unique_id}\n")
+                    f.write(f"Başlangıç zamanı: {datetime.now().isoformat()}\n")
+                    f.write(f"Durum: Rapor hazırlanıyor, lütfen bekleyin...\n")
+            except Exception as e:
+                logger.warning(f"Analiz hazırlık bilgisi kaydedilemedi: {e}")
+        
+        logger.info(f"Rapor klasörü oluşturuldu: {rapor_klasor}")
+        
+        # Analizciyi başlat
         analizci = NakilAnalizcisi()
-        # unique_id varsa, analizciye ve rapor yollarına ilet
         rapor = analizci.kapsamli_gunluk_analiz(gun_tarihi, unique_id=unique_id)
         
         if not rapor:

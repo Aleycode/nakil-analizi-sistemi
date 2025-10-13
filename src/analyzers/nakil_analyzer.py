@@ -43,50 +43,36 @@ class NakilAnalizcisi:
 
             logger.info(f"Kapsamlı günlük analiz başlatılıyor: {gun_tarihi}")
 
-            # 1. Veri işleme - unique_id varsa o dosyayı oku
-            if unique_id:
-                # Unique_id'li günlük dosyayı oku
-                from ..core.config import ISLENMIŞ_VERI_DIZIN
+            # 1. Veri işleme - son işlenen günlük veriyi kullan
+            from ..core.config import ISLENMIŞ_VERI_DIZIN
+            
+            # Tarih bazlı klasörleri bul
+            tarih_format = gun_tarihi.replace('-', '')  # 20251013
+            tarih_klasorleri = [k for k in ISLENMIŞ_VERI_DIZIN.glob(f"günlük_{tarih_format}*") if k.is_dir()]
+            
+            if not tarih_klasorleri:
+                logger.error(f"Tarih için klasör bulunamadı: {tarih_format}")
+                return {"durum": "hata", "mesaj": f"Tarih için klasör bulunamadı: {tarih_format}"}
+            
+            # En son modifiye edilen klasörü al
+            gunluk_klasor = max(tarih_klasorleri, key=lambda x: x.stat().st_mtime)
+            gunluk_dosya = gunluk_klasor / "veriler.parquet"
+            
+            logger.info(f"Son işlenen günlük dosya kullanılıyor: {gunluk_dosya}")
+            
+            if gunluk_dosya.exists():
+                logger.info(f"Günlük dosya okunuyor: {gunluk_dosya}")
+                df_gunluk = pd.read_parquet(gunluk_dosya)
+                # KRİTİK: Tarih sütunlarını datetime'a çevir
+                logger.info("Tarih sütunları datetime'a dönüştürülüyor...")
+                df_gunluk = self.veri_isleme.ensure_datetime_columns(df_gunluk)
+                logger.info(f"Datetime dönüşümü tamamlandı. Veri boyutu: {len(df_gunluk)}")
                 
-                # unique_id zaten tarih içeriyor (20251005_143022_abc12345 formatında)
-                # Bu yüzden sadece günlük_ prefix'i ve unique_id'yi kullan
-                tarih_str = unique_id.split("_")[0]  # İlk kısım tarih (20251005)
-                gunluk_klasor = ISLENMIŞ_VERI_DIZIN / f"günlük_{unique_id}"
-                gunluk_dosya = gunluk_klasor / "veriler.parquet"
-                
-                logger.info(f"Unique_id'li günlük dosya aranıyor: {gunluk_dosya}")
-                
-                if gunluk_dosya.exists():
-                    logger.info(f"Unique_id'li günlük dosya okunuyor: {gunluk_dosya}")
-                    df_gunluk = pd.read_parquet(gunluk_dosya)
-                    # KRİTİK: Tarih sütunlarını datetime'a çevir
-                    logger.info("Tarih sütunları datetime'a dönüştürülüyor...")
-                    df_gunluk = self.veri_isleme.ensure_datetime_columns(df_gunluk)
-                    logger.info(f"Datetime dönüşümü tamamlandı. Veri boyutu: {len(df_gunluk)}")
-                else:
-                    logger.error(f"Unique_id'li günlük dosya bulunamadı: {gunluk_dosya}")
-                    logger.error(f"Aranan klasör: {gunluk_klasor}")
-                    logger.error(f"Klasör mevcut mu: {gunluk_klasor.exists()}")
-                    mevcut_icerik = []
-                    if gunluk_klasor.exists():
-                        mevcut_icerik = [str(p) for p in gunluk_klasor.glob('*')]
-                    return {"durum": "hata", "mesaj": f"Günlük dosya bulunamadı: {gunluk_dosya}", "klasor": str(gunluk_klasor), "icerik": mevcut_icerik}
-                    
                 # Bu dosya zaten günlük filtreli, vaka tipi belirleme yap
                 df_gunluk = self.veri_isleme.vaka_tipi_belirle(df_gunluk, gun_tarihi)
             else:
-                # Normal akış: ana veriyi oku ve filtrele
-                df = self.veri_isleme.veriyi_oku()
-                if df.empty:
-                    logger.warning("Ana veri boş, analiz yapılamıyor.")
-                    return {"durum": "hata", "mesaj": "Ana veri boş, analiz yapılamıyor. 'data/processed/ana_veri.parquet' dosyası yok veya boş."}
-                
-                # KRİTİK: Tarih sütunlarını datetime'a çevir
-                logger.info("Ana veri tarih sütunları datetime'a dönüştürülüyor...")
-                df = self.veri_isleme.ensure_datetime_columns(df)
-                
-                df_gunluk = self.veri_isleme.gunluk_zaman_araligi_filtrele(df, gun_tarihi)
-                df_gunluk = self.veri_isleme.vaka_tipi_belirle(df_gunluk, gun_tarihi)
+                logger.error(f"Günlük dosya bulunamadı: {gunluk_dosya}")
+                return {"durum": "hata", "mesaj": f"Günlük dosya bulunamadı: {gunluk_dosya}"}
             
             # Süre hesaplamalarını ekle ve durum_kategori oluştur
             gun_datetime = datetime.strptime(gun_tarihi, "%Y-%m-%d")
@@ -172,22 +158,25 @@ class NakilAnalizcisi:
                     ] = sure_analizi
 
                     # Grafik oluştur (vaka durumu)
-                    if durum_analizi and "durum_sayilari" in durum_analizi:
-                        baslik = self.grafik_olusturucu._grafik_baslik_olustur(
-                            "vaka_durumu", grup_adi=il_grup_adi, vaka_tipi=vaka_tipi
-                        )
-                        # Dict'i pandas Series'e çevir (pd zaten global import edilmiş)
-                        durum_series = pd.Series(durum_analizi["durum_sayilari"])
-                        grafik_path = f"vaka_durumu_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png"
-                        grafik_path_str = str(self.grafik_olusturucu.pasta_grafik_olustur(
-                            durum_series,
-                            baslik,
-                            grafik_path,
-                        ))
-                        if grafik_path_str:
-                            rapor["oluşturulan_grafikler"].append(grafik_path_str)
-                        else:
-                            logger.warning(f"Grafik oluşturulamadı: {grafik_path} (veri: {len(durum_series)})")
+                    try:
+                        if durum_analizi and "durum_sayilari" in durum_analizi:
+                            baslik = self.grafik_olusturucu._grafik_baslik_olustur(
+                                "vaka_durumu", grup_adi=il_grup_adi, vaka_tipi=vaka_tipi
+                            )
+                            # Dict'i pandas Series'e çevir (pd zaten global import edilmiş)
+                            durum_series = pd.Series(durum_analizi["durum_sayilari"])
+                            grafik_path = f"vaka_durumu_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png"
+                            grafik_path_str = str(self.grafik_olusturucu.pasta_grafik_olustur(
+                                durum_series,
+                                baslik,
+                                grafik_path,
+                            ))
+                            if grafik_path_str:
+                                rapor["oluşturulan_grafikler"].append(grafik_path_str)
+                            else:
+                                logger.warning(f"Grafik oluşturulamadı: {grafik_path} (veri: {len(durum_series)})")
+                    except Exception as grafik_hata:
+                        logger.error(f"Vaka durumu grafiği oluşturma hatası: {grafik_hata}")
 
                     # 2. İptal vakalar için bekleme süresi
                     iptal_analizi = self.analiz_motoru.bekleme_suresi_analizi(
@@ -208,22 +197,25 @@ class NakilAnalizcisi:
                         ] = yer_analizi
 
                         # Threshold pasta grafiği
-                        if "threshold_analizi" in yer_analizi:
-                            baslik = self.grafik_olusturucu._grafik_baslik_olustur(
-                                "bekleme_threshold",
-                                grup_adi=il_grup_adi,
-                                vaka_tipi=vaka_tipi,
-                            )
-                            grafik_path = f"bekleme_threshold_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png"
-                            grafik_path_str = str(self.grafik_olusturucu.threshold_pasta_grafik(
-                                yer_analizi["threshold_analizi"],
-                                baslik,
-                                grafik_path,
-                            ))
-                        if grafik_path_str:
-                            rapor["oluşturulan_grafikler"].append(grafik_path_str)
-                        else:
-                            logger.warning(f"Threshold grafik oluşturulamadı: {grafik_path} (veri: {yer_analizi['threshold_analizi']})")
+                        try:
+                            if "threshold_analizi" in yer_analizi:
+                                baslik = self.grafik_olusturucu._grafik_baslik_olustur(
+                                    "bekleme_threshold",
+                                    grup_adi=il_grup_adi,
+                                    vaka_tipi=vaka_tipi,
+                                )
+                                grafik_path = f"bekleme_threshold_{il_grup_adi}_{vaka_tipi}_{gun_tarihi}.png"
+                                grafik_path_str = str(self.grafik_olusturucu.threshold_pasta_grafik(
+                                    yer_analizi["threshold_analizi"],
+                                    baslik,
+                                    grafik_path,
+                                ))
+                                if grafik_path_str:
+                                    rapor["oluşturulan_grafikler"].append(grafik_path_str)
+                                else:
+                                    logger.warning(f"Threshold grafik oluşturulamadı: {grafik_path} (veri: {yer_analizi['threshold_analizi']})")
+                        except Exception as grafik_hata:
+                            logger.error(f"Threshold grafiği oluşturma hatası: {grafik_hata}")
 
                     # 4. Klinik dağılım analizi
                     klinik_analizi = self.klinik_analizcisi.klinik_dagilim_analizi(
@@ -235,93 +227,111 @@ class NakilAnalizcisi:
                         ] = klinik_analizi
 
                         # Klinik grafiklerini oluştur
-                        grafik_dosyalari = (
-                            self.klinik_analizcisi.klinik_grafikleri_olustur(
-                                vaka_df, gun_tarihi, f"{il_grup_adi}_{vaka_tipi}"
+                        try:
+                            grafik_dosyalari = (
+                                self.klinik_analizcisi.klinik_grafikleri_olustur(
+                                    vaka_df, gun_tarihi, f"{il_grup_adi}_{vaka_tipi}"
+                                )
                             )
-                        )
-                        import os
-                        for grafik_path in grafik_dosyalari or []:
-                            if not os.path.exists(grafik_path):
-                                logger.warning(f"Klinik grafik oluşturulamadı: {grafik_path}")
-                        if grafik_dosyalari:
-                            rapor["oluşturulan_grafikler"].extend(grafik_dosyalari)
+                            import os
+                            for grafik_path in grafik_dosyalari or []:
+                                if not os.path.exists(grafik_path):
+                                    logger.warning(f"Klinik grafik oluşturulamadı: {grafik_path}")
+                            if grafik_dosyalari:
+                                rapor["oluşturulan_grafikler"].extend(grafik_dosyalari)
+                        except Exception as grafik_hata:
+                            logger.error(f"Klinik grafikleri oluşturma hatası: {grafik_hata}")
 
             # 5. Yeni pasta grafikleri oluştur (her il grubu için)
             from ..core.config import GRAFIK_AYARLARI
 
             # Vaka tipi pasta grafikleri
-            if GRAFIK_AYARLARI.get("vaka_tipi_pasta_grafigi", True):
-                for il_grup_adi, il_df in il_gruplari.items():
-                    if len(il_df) > 0:
-                        vaka_tipi_dosya = (
-                            self.grafik_olusturucu.vaka_tipi_pasta_grafigi(
-                                il_df, gun_tarihi, il_grup_adi
+            try:
+                if GRAFIK_AYARLARI.get("vaka_tipi_pasta_grafigi", True):
+                    for il_grup_adi, il_df in il_gruplari.items():
+                        if len(il_df) > 0:
+                            vaka_tipi_dosya = (
+                                self.grafik_olusturucu.vaka_tipi_pasta_grafigi(
+                                    il_df, gun_tarihi, il_grup_adi
+                                )
                             )
-                        )
-                        if vaka_tipi_dosya:
-                            grafik_dosya_str = str(vaka_tipi_dosya)
-                            grafik_listesi = rapor["oluşturulan_grafikler"]
-                            grafik_listesi.append(grafik_dosya_str)
+                            if vaka_tipi_dosya:
+                                grafik_dosya_str = str(vaka_tipi_dosya)
+                                grafik_listesi = rapor["oluşturulan_grafikler"]
+                                grafik_listesi.append(grafik_dosya_str)
+            except Exception as grafik_hata:
+                logger.error(f"Vaka tipi pasta grafikleri oluşturma hatası: {grafik_hata}")
 
             # İl dağılımı pasta grafiği (genel)
-            if GRAFIK_AYARLARI.get("il_dagilim_pasta_grafigi", True):
-                il_dagilim_dosya = self.grafik_olusturucu.il_dagilim_pasta_grafigi(
-                    il_gruplari, gun_tarihi
-                )
-                if il_dagilim_dosya:
-                    grafik_dosya_str = str(il_dagilim_dosya)
-                    grafik_listesi = rapor["oluşturulan_grafikler"]
-                    grafik_listesi.append(grafik_dosya_str)
-
-            # İptal eden karşılaştırma grafiği (il içi vs il dışı)
-            if GRAFIK_AYARLARI.get("iptal_eden_karsilastirma_grafigi", True):
-                karsilastirma_dosya = (
-                    self.grafik_olusturucu.iptal_eden_karsilastirma_grafigi(
+            try:
+                if GRAFIK_AYARLARI.get("il_dagilim_pasta_grafigi", True):
+                    il_dagilim_dosya = self.grafik_olusturucu.il_dagilim_pasta_grafigi(
                         il_gruplari, gun_tarihi
                     )
-                )
-                if karsilastirma_dosya:
-                    grafik_dosya_str = str(karsilastirma_dosya)
-                    grafik_listesi = rapor["oluşturulan_grafikler"]
-                    grafik_listesi.append(grafik_dosya_str)
+                    if il_dagilim_dosya:
+                        grafik_dosya_str = str(il_dagilim_dosya)
+                        grafik_listesi = rapor["oluşturulan_grafikler"]
+                        grafik_listesi.append(grafik_dosya_str)
+            except Exception as grafik_hata:
+                logger.error(f"İl dağılımı pasta grafiği oluşturma hatası: {grafik_hata}")
+
+            # İptal eden karşılaştırma grafiği (il içi vs il dışı)
+            try:
+                if GRAFIK_AYARLARI.get("iptal_eden_karsilastirma_grafigi", True):
+                    karsilastirma_dosya = (
+                        self.grafik_olusturucu.iptal_eden_karsilastirma_grafigi(
+                            il_gruplari, gun_tarihi
+                        )
+                    )
+                    if karsilastirma_dosya:
+                        grafik_dosya_str = str(karsilastirma_dosya)
+                        grafik_listesi = rapor["oluşturulan_grafikler"]
+                        grafik_listesi.append(grafik_dosya_str)
+            except Exception as grafik_hata:
+                logger.error(f"İptal eden karşılaştırma grafiği oluşturma hatası: {grafik_hata}")
 
             # Solunum işlemi pasta grafikleri (her il grubu için)
-            if GRAFIK_AYARLARI.get("solunum_islemi_pasta_grafigi", True):
-                solunum_grafik_dosyasi = (
-                    self.grafik_olusturucu.solunum_islemi_pasta_grafigi(
-                        il_gruplari["Butun_Bolgeler"], gun_tarihi, "Butun_Bolgeler"
+            try:
+                if GRAFIK_AYARLARI.get("solunum_islemi_pasta_grafigi", True):
+                    solunum_grafik_dosyasi = (
+                        self.grafik_olusturucu.solunum_islemi_pasta_grafigi(
+                            il_gruplari["Butun_Bolgeler"], gun_tarihi, "Butun_Bolgeler"
+                        )
                     )
-                )
-                if solunum_grafik_dosyasi:
-                    grafik_listesi = rapor["oluşturulan_grafikler"]
-                    grafik_listesi.append(str(solunum_grafik_dosyasi))
+                    if solunum_grafik_dosyasi:
+                        grafik_listesi = rapor["oluşturulan_grafikler"]
+                        grafik_listesi.append(str(solunum_grafik_dosyasi))
+            except Exception as grafik_hata:
+                logger.error(f"Solunum işlemi pasta grafikleri oluşturma hatası: {grafik_hata}")
 
             # Süre analizi grafikleri
-            if df_gunluk is not None and len(df_gunluk) > 0:
-                # Yer bulma süresi histogramı 
-                histogram_dosya = self.grafik_olusturucu.sure_dagilimi_histogram(
-                    df_gunluk, gun_tarihi
-                )
-                if histogram_dosya:
-                    grafik_listesi = rapor["oluşturulan_grafikler"]
-                    grafik_listesi.append(histogram_dosya)
-                
-                # Klinik bazında süre karşılaştırması
-                klinik_sure_dosya = self.grafik_olusturucu.klinik_sure_karsilastirma(
-                    df_gunluk, gun_tarihi
-                )
-                if klinik_sure_dosya:
-                    grafik_listesi = rapor["oluşturulan_grafikler"] 
-                    grafik_listesi.append(klinik_sure_dosya)
-                
-                # Bekleme durumu analizi
-                bekleme_dosya = self.grafik_olusturucu.bekleme_durumu_analizi(
-                    df_gunluk, gun_tarihi
-                )
-                if bekleme_dosya:
-                    grafik_listesi = rapor["oluşturulan_grafikler"]
-                    grafik_listesi.append(bekleme_dosya)
+            try:
+                if df_gunluk is not None and len(df_gunluk) > 0:
+                    # Yer bulma süresi histogramı 
+                    histogram_dosya = self.grafik_olusturucu.sure_dagilimi_histogram(
+                        df_gunluk, gun_tarihi
+                    )
+                    if histogram_dosya:
+                        grafik_listesi = rapor["oluşturulan_grafikler"]
+                        grafik_listesi.append(histogram_dosya)
+                    
+                    # Klinik bazında süre karşılaştırması
+                    klinik_sure_dosya = self.grafik_olusturucu.klinik_sure_karsilastirma(
+                        df_gunluk, gun_tarihi
+                    )
+                    if klinik_sure_dosya:
+                        grafik_listesi = rapor["oluşturulan_grafikler"] 
+                        grafik_listesi.append(klinik_sure_dosya)
+                    
+                    # Bekleme durumu analizi
+                    bekleme_dosya = self.grafik_olusturucu.bekleme_durumu_analizi(
+                        df_gunluk, gun_tarihi
+                    )
+                    if bekleme_dosya:
+                        grafik_listesi = rapor["oluşturulan_grafikler"]
+                        grafik_listesi.append(bekleme_dosya)
+            except Exception as grafik_hata:
+                logger.error(f"Süre analizi grafikleri oluşturma hatası: {grafik_hata}")
 
             # Nakil bekleyen raporu oluştur (txt)
             if GRAFIK_AYARLARI.get("nakil_bekleyen_raporu", True):
@@ -342,7 +352,57 @@ class NakilAnalizcisi:
             with open(rapor_dosya, "w", encoding="utf-8") as f:
                 json.dump(rapor, f, ensure_ascii=False, indent=2, default=str)
 
-            # 7. PDF raporu oluştur - unique_id parametresini ekle
+            # 7. PDF raporu oluşturulmadan ÖNCE: Grafiklerin hepsi unique_id klasöründe dursun
+            # Böylece PDF içine tüm PNG'ler dahil edilecek
+            try:
+                import shutil
+                from ..core.config import RAPOR_DIZIN
+
+                # Tarih bazlı klasör (standart günlük klasör)
+                tarih_bazli_klasor = RAPOR_DIZIN / gun_tarihi
+                # PDF'in kaydedileceği klasör
+                unique_id_klasor = tarih_klasor
+                
+                # Durumu göster
+                logger.info(f"Tarih klasörü: {tarih_bazli_klasor}, mevcutmu: {tarih_bazli_klasor.exists()}")
+                logger.info(f"PDF klasörü: {unique_id_klasor}, mevcutmu: {unique_id_klasor.exists()}")
+                
+                if tarih_bazli_klasor.exists():
+                    # Tarih bazlı klasördeki PNG sayısını gör
+                    png_listesi = list(tarih_bazli_klasor.glob("*.png"))
+                    logger.info(f"Tarih klasöründe {len(png_listesi)} PNG dosyası mevcut")
+                    
+                    # Klasör farklıysa kopyala, aynı klasörse atla
+                    if tarih_bazli_klasor != unique_id_klasor and unique_id_klasor.exists():
+                        kopya_sayisi = 0
+                        for grafik_dosya in png_listesi:
+                            hedef = unique_id_klasor / grafik_dosya.name
+                            if not hedef.exists():
+                                shutil.copy2(grafik_dosya, hedef)
+                                kopya_sayisi += 1
+                        
+                        if kopya_sayisi > 0:
+                            logger.info(f"📄 PDF öncesi {kopya_sayisi} grafik unique klasöre kopyalandı: {tarih_bazli_klasor} → {unique_id_klasor}")
+                    else:
+                        if tarih_bazli_klasor == unique_id_klasor:
+                            logger.info("Klasörler aynı, kopya işlemi atlanıyor")
+                        else:
+                            logger.info(f"Hedef klasör mevcut değil, oluşturuluyor: {unique_id_klasor}")
+                            unique_id_klasor.mkdir(parents=True, exist_ok=True)
+                            # Grafikleri kopyala
+                            kopya_sayisi = 0
+                            for grafik_dosya in png_listesi:
+                                hedef = unique_id_klasor / grafik_dosya.name
+                                shutil.copy2(grafik_dosya, hedef)
+                                kopya_sayisi += 1
+                            
+                            logger.info(f"📄 PDF öncesi {kopya_sayisi} grafik yeni klasöre kopyalandı: {tarih_bazli_klasor} → {unique_id_klasor}")
+                else:
+                    logger.warning(f"Tarih klasörü mevcut değil, grafik kopyalanamıyor: {tarih_bazli_klasor}")
+            except Exception as pre_copy_err:
+                logger.warning(f"PDF öncesi grafik kopyalama hatası (kritik değil): {pre_copy_err}")
+
+            # 8. PDF raporu oluştur - unique_id parametresini ekle
             try:
                 pdf_dosya = self.pdf_olusturucu.pdf_olustur(tarih_klasor, gun_tarihi, rapor, unique_id)
                 if pdf_dosya:
@@ -354,7 +414,7 @@ class NakilAnalizcisi:
             # Grafik oluşturucu override'ını temizle
             self.grafik_olusturucu._rapor_dizin_override = None
 
-            # ÖNEMLİ: Grafikleri unique_id klasörüne kopyala (Rapor Arşivi için)
+            # ÖNEMLİ: Grafikleri unique_id klasörüne kopyala (Rapor Arşivi için) - PDF sonrası yine güvence
             try:
                 import shutil
                 

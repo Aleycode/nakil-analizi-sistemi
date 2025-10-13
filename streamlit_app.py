@@ -107,34 +107,44 @@ def configure_page():
     )
 
 def get_existing_reports():
-    """Mevcut rapor klasörlerini (tarih+id) ve meta bilgisini al"""
+    """Mevcut rapor klasörlerini basit şekilde listele"""
     reports = []
-    if DATA_REPORTS_DIR.exists():
+    
+    if not DATA_REPORTS_DIR.exists():
+        return reports
+        
+    try:
         for item in DATA_REPORTS_DIR.iterdir():
-            if item.is_dir() and item.name.startswith("20"):
-                # Klasör ismi: 2025-10-05 veya 2025-10-05_abc12345
-                parts = item.name.split("_")
-                tarih = parts[0]
-                unique_id = parts[1] if len(parts) > 1 else ""
-                # PDF dosyasını bul
-                pdfs = list(item.glob("*.pdf"))
-                pdf_path = str(pdfs[0]) if pdfs else None
-                # JSON analiz dosyasını bul
-                jsons = list(item.glob("*.json"))
-                json_path = str(jsons[0]) if jsons else None
-                # Klasördeki ilk Excel dosyasını bul (meta için)
-                excel_files = list((ROOT_DIR/"data"/"raw").glob(f"*{unique_id}*.xls*")) if unique_id else []
-                excel_name = excel_files[0].name if excel_files else ""
+            if not item.is_dir() or not item.name.startswith("20"):
+                continue
+                
+            # PNG dosyalarını kontrol et (grafik var mı?)
+            png_files = list(item.glob("*.png"))
+            
+            # PDF dosyalarını kontrol et
+            pdf_files = list(item.glob("*.pdf"))
+            
+            # JSON dosyalarını kontrol et
+            json_files = list(item.glob("*.json"))
+            
+            # Raporu listeye ekle (en azından bir dosya varsa)
+            if png_files or pdf_files or json_files:
                 reports.append({
-                    "folder": item.name,
-                    "tarih": tarih,
-                    "unique_id": unique_id,
-                    "pdf": pdf_path,
-                    "json": json_path,
-                    "excel": excel_name
+                    "folder_name": item.name,
+                    "folder_path": str(item),
+                    "png_count": len(png_files),
+                    "has_pdf": len(pdf_files) > 0,
+                    "has_json": len(json_files) > 0,
+                    "display_name": item.name.replace("_", " | "),  # Daha okunabilir format
+                    "creation_time": item.stat().st_mtime
                 })
-    # En yeni en başta
-    reports = sorted(reports, key=lambda x: x["folder"], reverse=True)
+        
+        # En yeni raporları en başta göster
+        reports = sorted(reports, key=lambda x: x["creation_time"], reverse=True)
+        
+    except Exception as e:
+        st.error(f"Rapor listesi alınırken hata: {e}")
+        
     return reports
 
 def get_raw_files():
@@ -183,13 +193,48 @@ def show_pdf(file_path):
     except Exception as e:
         st.error(f"PDF gösterilirken hata oluştu: {e}")
 
-def show_graphs(date_folder, num_graphs=6):
-    """Tarih klasöründen grafikleri göster"""
-    png_files = list(date_folder.glob("*.png"))
+def show_graphs(report_folder_path, num_graphs=6):
+    """Verilen klasörden grafikleri basit şekilde göster"""
+    
+    if isinstance(report_folder_path, str):
+        report_folder_path = Path(report_folder_path)
+    
+    # Klasör kontrolü
+    if not report_folder_path.exists():
+        st.error(f"❌ Rapor klasörü bulunamadı: {report_folder_path}")
+        st.info("💡 Lütfen 'Nakil Analizi' sekmesinden yeni bir rapor oluşturun.")
+        return
+    
+    # PNG dosyalarını bul
+    png_files = list(report_folder_path.glob("*.png"))
+
+    # Eğer png bulunamazsa, tarih klasöründe ara
+    if not png_files:
+        # Klasör ismi başındaki tarihi al
+        date_part = report_folder_path.name.split('_')[0]
+        alt_path = DATA_REPORTS_DIR / date_part
+        # Tarih klasöründe png var mı?
+        alt_png = list(alt_path.glob("*.png"))
+        if alt_png:
+            png_files = alt_png
+            report_folder_path = alt_path
     
     if not png_files:
-        st.warning("⚠️ Bu tarih için grafik bulunamadı.")
+        st.warning(f"⚠️ Bu klasörde hiç grafik bulunamadı: {report_folder_path.name}")
+        
+        # PDF kontrolü
+        pdf_files = list(report_folder_path.glob("*.pdf"))
+        if pdf_files:
+            st.info("📄 PDF raporu mevcut. 'PDF Raporu' sekmesinden görüntüleyebilirsiniz.")
+        else:
+            st.error("❌ Bu rapor için hiçbir dosya bulunamadı. Rapor oluşturma işleminde sorun yaşanmış olabilir.")
         return
+    
+    # Grafik sayısı bilgisi
+    st.info(f"📊 Toplam {len(png_files)} grafik bulundu.")
+    
+    # Kategori filtresi (eğer çok grafik varsa)
+    display_graphs = png_files
     
     # Grafikler için filtre ekle
     if len(png_files) > 6:
@@ -399,16 +444,31 @@ def file_uploader_section():
             st.write(f"**{k}:** {v}")
 
         # Benzersiz zaman damgası ve dosya hash'i oluştur
-        now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Önce aynı dosya daha önce kaydedildi mi kontrol et
         file_hash = hashlib.md5(uploaded_file.getbuffer()).hexdigest()[:8]
-        unique_id = f"{now_str}_{file_hash}"
-
-        # Dosyayı geçici olarak kaydet
-        DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
-        temp_path = DATA_RAW_DIR / f"{unique_id}_{uploaded_file.name}"
-        with open(temp_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        st.success(f"✅ Dosya başarıyla yüklendi!")
+        
+        # Aynı hash'e sahip dosya var mı?
+        existing_files = list(DATA_RAW_DIR.glob(f"*_{file_hash}_*"))
+        if existing_files:
+            # Mevcut dosyanın unique_id'sini kullan
+            temp_path = existing_files[0]
+            # Dosya adından unique_id'yi parse et: YYYYMMDD_HHMMSS_hash
+            parts = temp_path.stem.split("_")
+            unique_id = f"{parts[0]}_{parts[1]}_{parts[2]}"  # YYYYMMDD_HHMMSS_hash
+            st.info(f"📄 Bu dosya daha önce yüklenmişti, mevcut unique_id kullanılıyor: {unique_id}")
+        else:
+            # Yeni dosya, yeni unique_id oluştur
+            now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            unique_id = f"{now_str}_{file_hash}"
+            
+            # Dosyayı kaydet
+            DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
+            temp_path = DATA_RAW_DIR / f"{unique_id}_{uploaded_file.name}"
+            with open(temp_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            st.success(f"✅ Dosya başarıyla yüklendi!")
+        
+        st.info(f"🔑 Unique ID: {unique_id}")
 
         st.markdown("---")
         st.markdown("### 🚀 Hızlı İşlem")
@@ -435,8 +495,9 @@ Python: {sys.executable}
             if result.returncode != 0:
                 st.error("❌ Veri işleme hatası!")
                 with st.expander("Hata Detayları", expanded=True):
-                    st.code(result.stderr or "stderr boş")
-                    st.code(result.stdout or "stdout boş")
+                    # Show stderr or stdout if stderr is empty
+                    err = result.stderr.strip() or result.stdout.strip() or 'Çıktı yok'
+                    st.code(err)
                 return
             
             progress_bar.progress(50)
@@ -456,37 +517,23 @@ Python: {sys.executable}
             
             progress_bar.progress(100)
             
-            if analiz_result.returncode == 0:
-                st.balloons()
-                st.success("🎉 Tüm işlemler tamamlandı! PDF raporunuz hazır.")
-                status_text.text("")
-                
-                st.info("📂 'Rapor Arşivi' sayfasından raporunuzu görüntüleyebilir ve indirebilirsiniz.")
-                
-                # Rapor arşivi sayfasına yönlendirme butonu
-                if st.button("📊 Raporumu Görüntüle", use_container_width=True):
-                    st.session_state.page = "rapor_arsivi"
-                    st.rerun()
-            else:
+            if analiz_result.returncode != 0:
                 st.error("❌ Analiz hatası!")
                 with st.expander("Hata Detayları", expanded=True):
-                    st.code(analiz_result.stderr or "stderr boş")
-                    st.code(analiz_result.stdout or "stdout boş")
+                    err = analiz_result.stderr.strip() or analiz_result.stdout.strip() or 'Çıktı yok'
+                    st.code(err)
+                return
+            # Başarılı analiz
+            st.balloons()
+            st.success("🎉 Rapor başarıyla oluşturuldu!")
 
-def existing_files_section():
-    """Mevcut Excel dosyaları bölümü"""
-    
-    # Kullanım talimatları
-    st.info("""
-    **Bu sekmede ne yapabilirsiniz?**
-    1. Listeden daha önce yüklenmiş bir Excel dosyasını seçin
-    2. "Seçilen Dosyayı İşle" butonuna tıklayarak işlemi başlatın
-    3. İşlem tamamlandığında "Analiz" sekmesine geçebilirsiniz
-    """)
-    
-    excel_files = get_raw_files()
-    
-    if not excel_files:
+            # Son analiz bilgisini sakla ve ön seçim yap
+            st.session_state.last_analysis = {"status": "success", "date": gun_tarihi, "unique_id": unique_id}
+            st.session_state.preselect_folder = f"{gun_tarihi}_{unique_id}"
+
+            st.info("📂 Raporunuz aşağıda görüntüleniyor...")
+            st.rerun()
+    else:
         st.warning("⚠️ Henüz yüklenmiş Excel dosyası bulunmuyor.")
         st.markdown("""
         <div style="padding: 20px; border: 1px solid #FF9800; border-radius: 10px; text-align: center; background-color: #FFF8E1;">
@@ -495,7 +542,11 @@ def existing_files_section():
         """, unsafe_allow_html=True)
         return
     
-    # Dosya listesini tablo olarak göster
+    # Ham Excel dosyalarını al ve listele
+    excel_files = get_raw_files()
+    if not excel_files:
+        st.info("📂 Henüz işlenmek üzere yüklenmiş Excel dosyası yok.")
+        return
     st.markdown("### Mevcut Excel Dosyaları")
     file_data = []
     
@@ -551,54 +602,165 @@ def existing_files_section():
                         st.text(result.stderr)
 
 def analysis_section():
-    """Analiz bölümü"""
+    """Analiz bölümü - Dosya yükleme ve mevcut raporlar"""
     
-    # Kullanım talimatları
-    st.info("""
-    **Bu sekmede ne yapabilirsiniz?**
-    1. İşlenen verilerden bir tarih seçin
-    2. "Analiz Yap" butonuna tıklayarak rapor oluşturun
-    3. Oluşturulan raporu görüntüleyin ve PDF olarak indirin
-    """)
+    st.markdown("<h1 class='main-header'>Nakil Analizi</h1>", unsafe_allow_html=True)
     
-    # İşlenmiş rapor listesi (tarih+id)
+    # === YENİ RAPOR YÜKLEME BÖLÜMÜ ===
+    st.markdown("### 📤 Yeni Nakil Raporu Yükle")
+    
+    uploaded_file = st.file_uploader(
+        "Nakil Z Raporu Excel dosyasını (.xls/.xlsx) seçin:",
+        type=["xls", "xlsx"],
+        help="Sağlık Bakanlığı'ndan aldığınız Nakil Vaka Talepleri Raporu dosyasını yükleyin"
+    )
+    
+    if uploaded_file is not None:
+        st.success(f"✅ Dosya yüklendi: **{uploaded_file.name}** ({uploaded_file.size / 1024:.1f} KB)")
+        
+        # İki sütunlu düzen: Buton + İpucu
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            start_analysis = st.button(
+                "🚀 Nakil Analizi Yap", 
+                type="primary", 
+                use_container_width=True,
+                help="Excel verisini işler, nakil analizini yapar ve PDF raporu oluşturur"
+            )
+        with col2:
+            if st.button("❌ İptal", use_container_width=True):
+                st.rerun()
+        
+        if start_analysis:
+            try:
+                import hashlib
+                
+                # Dosya hash'ini hesapla
+                file_hash = hashlib.md5(uploaded_file.getbuffer()).hexdigest()[:8]
+                
+                # Aynı hash'e sahip dosya daha önce kaydedildi mi?
+                existing_files = list(DATA_RAW_DIR.glob(f"*_{file_hash}_*"))
+                if existing_files:
+                    # Mevcut dosyanın unique_id'sini kullan
+                    save_path = existing_files[0]
+                    parts = save_path.stem.split("_")
+                    unique_id = f"{parts[0]}_{parts[1]}_{parts[2]}"
+                    st.info(f"📄 Bu dosya daha önce yüklenmişti. Mevcut unique_id kullanılıyor: {unique_id}")
+                else:
+                    # Yeni dosya - yeni unique_id oluştur
+                    now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    unique_id = f"{now_str}_{file_hash}"
+                    
+                    save_path = DATA_RAW_DIR / f"{unique_id}_{uploaded_file.name}"
+                    DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
+                    
+                    with open(save_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    
+                    st.success(f"✅ Yeni dosya kaydedildi: {unique_id}")
+                
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
+                progress_bar.progress(25)
+                
+                # Debug: Komut bilgisi
+                with st.expander("🔧 İşlem Detayları (Debug)", expanded=True):
+                    st.code(f"""
+Dosya: {save_path}
+Unique ID: {unique_id}
+Çalışma Dizini: {ROOT_DIR}
+Python: {sys.executable}
+                    """)
+
+                result = process_daily_data(save_path, unique_id=unique_id)
+                
+                if result.returncode != 0:
+                    st.error("❌ Veri işleme hatası!")
+                    with st.expander("Hata Detayları", expanded=True):
+                        err = result.stderr.strip() or result.stdout.strip() or 'Çıktı yok'
+                        st.code(err)
+                else:
+                    progress_bar.progress(50)
+                    st.success("✅ Veri başarıyla işlendi!")
+                    
+                    status_text.text("📈 Adım 2/2: Analiz yapılıyor ve PDF oluşturuluyor...")
+                    progress_bar.progress(75)
+                    
+                    # Tarihi belirle (Excel'den veya bugünden)
+                    gun_tarihi = datetime.now().strftime("%Y-%m-%d")
+                    
+                    # Analiz komutunu çalıştır (unique_id ile)
+                    command = [sys.executable, "main.py", "--analiz", gun_tarihi, "--unique-id", unique_id]
+                    analiz_result = run_command(command)
+                    
+                    progress_bar.progress(100)
+                    status_text.text("")
+                    
+                    if analiz_result.returncode == 0:
+                        st.balloons()
+                        st.success("🎉 Tüm işlemler tamamlandı! PDF raporunuz hazır.")
+                        
+                        # Başarı durumunu session_state'e kaydet
+                        st.session_state.last_analysis = {
+                            "status": "success",
+                            "date": gun_tarihi,
+                            "unique_id": unique_id,
+                        }
+                        st.session_state.preselect_folder = f"{gun_tarihi}_{unique_id}"
+                        
+                        st.info("📂 Rapor Arşivi sayfasına yönlendiriliyorsunuz...")
+                        
+                        # Rapor arşivi sayfasına yönlendirme
+                        st.session_state.page = "rapor"
+                        st.rerun()
+                    else:
+                        st.error("❌ Analiz hatası!")
+                        with st.expander("Hata Detayları", expanded=True):
+                            err = analiz_result.stderr.strip() or analiz_result.stdout.strip() or 'Çıktı yok'
+                            st.code(err)
+                
+            except Exception as e:
+                st.error(f"❌ İşlem hatası: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+    
+    # === MEVCUT RAPORLAR BÖLÜMÜ ===
+    st.markdown("---")
+    st.markdown("### 📋 Son Oluşturulan Raporlar")
+    
+    # Mevcut raporları listele
     reports = get_existing_reports()
     if not reports:
-        st.warning("⚠️ Henüz işlenmiş veri bulunmuyor.")
-        st.markdown("""
-        <div style="padding: 20px; border: 1px solid #FF9800; border-radius: 10px; text-align: center; background-color: #FFF8E1;">
-            <h4>Önce 'Veri Yükleme' veya 'Mevcut Dosyalar' sekmesinden bir Excel dosyasını işleyin</h4>
-        </div>
-        """, unsafe_allow_html=True)
-        return
-
-    st.markdown("### Rapor Arşivi (Tarih + Yükleme Kimliği)")
-    for rep in reports:
-        with st.expander(f"{rep['tarih']}  |  {rep['unique_id']}  |  {rep['excel']}"):
-            st.markdown(f"**Klasör:** `{rep['folder']}`")
-            if rep['pdf'] and os.path.exists(rep['pdf']):
-                st.markdown("#### 📄 PDF Raporu")
-                with open(rep['pdf'], "rb") as pdf_file:
-                    pdf_bytes = pdf_file.read()
-                st.download_button(
-                    label="PDF Raporu İndir",
-                    data=pdf_bytes,
-                    file_name=os.path.basename(rep['pdf']),
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-                st.markdown(f"- Dosya: {os.path.basename(rep['pdf'])}")
-                st.markdown(f"- Boyut: {os.path.getsize(rep['pdf'])/1024:.1f} KB")
-                with st.expander("📋 PDF Raporu Önizleme", expanded=False):
-                    show_pdf(rep['pdf'])
-            if rep['json'] and os.path.exists(rep['json']):
-                st.markdown(f"- Analiz JSON: `{os.path.basename(rep['json'])}`")
-            # Grafikler
-            date_folder = DATA_REPORTS_DIR / rep['folder']
-            st.markdown("#### 📈 Analiz Grafikleri")
-            show_graphs(date_folder, num_graphs=9)
-            st.markdown("#### 📊 Analiz İstatistikleri")
-            show_statistics(rep['folder'])
+        st.info("📝 Henüz rapor oluşturulmamış. Yukarıdan bir Excel dosyası yükleyip analiz yapabilirsiniz.")
+    else:
+        # İlk 3 raporu göster
+        st.markdown(f"**Toplam {len(reports)} rapor bulundu.** İlk 3 rapor gösteriliyor:")
+        
+        for i, report in enumerate(reports[:3]):
+            with st.expander(f"📊 {report['display_name']} ({report['png_count']} grafik)"):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("� Grafik", report['png_count'])
+                with col2:
+                    st.metric("📄 PDF", "✅" if report['has_pdf'] else "❌")
+                with col3:
+                    st.metric("📊 JSON", "✅" if report['has_json'] else "❌")
+                
+                # PDF indirme butonu
+                report_path = Path(report['folder_path'])
+                pdf_files = list(report_path.glob("*.pdf"))
+                if pdf_files:
+                    with open(pdf_files[0], "rb") as f:
+                        st.download_button(
+                            "� PDF İndir",
+                            data=f.read(),
+                            file_name=pdf_files[0].name,
+                            mime="application/pdf",
+                            key=f"pdf_download_{i}"
+                        )
+        
+        st.info("💡 Tüm raporları görüntülemek için **Rapor Arşivi** sekmesine gidin.")
 
 def main():
     configure_page()
@@ -631,9 +793,199 @@ def main():
     if current_page == "analiz":
         analysis_section()
     elif current_page == "rapor":
-        # Basit rapor listesi (app.py'den kopyalanacak)
+        # Rapor Arşivi Sayfası
         st.markdown("<h1 class='main-header'>Rapor Arşivi</h1>", unsafe_allow_html=True)
-        st.info("Rapor arşivi özelliği için ana app.py dosyasını kullanın.")
+        
+        # === YENİ RAPOR OLUŞTURMA BÖLÜMÜ ===
+        st.markdown("### 📤 Yeni Rapor Oluştur")
+        
+        uploaded_file = st.file_uploader(
+            "Nakil Z Raporu Excel dosyasını (.xls/.xlsx) seçin:",
+            type=["xls", "xlsx"],
+            help="Sağlık Bakanlığı'ndan aldığınız Nakil Vaka Talepleri Raporu dosyasını yükleyin",
+            key="rapor_arsivi_uploader"
+        )
+        
+        if uploaded_file is not None:
+            st.success(f"✅ Dosya yüklendi: **{uploaded_file.name}** ({uploaded_file.size / 1024:.1f} KB)")
+            
+            # İki sütunlu düzen: Buton + İpucu
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                start_analysis = st.button(
+                    "🚀 Rapor Oluştur", 
+                    type="primary", 
+                    use_container_width=True,
+                    help="Excel verisini işler, nakil analizini yapar ve PDF raporu oluşturur",
+                    key="rapor_olustur_btn"
+                )
+            with col2:
+                if st.button("❌ İptal", use_container_width=True, key="rapor_iptal_btn"):
+                    st.rerun()
+            
+            if start_analysis:
+                try:
+                    import hashlib
+                    now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    file_hash = hashlib.md5(uploaded_file.getbuffer()).hexdigest()[:8]
+                    unique_id = f"{now_str}_{file_hash}"
+                    
+                    save_path = DATA_RAW_DIR / f"{unique_id}_{uploaded_file.name}"
+                    DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
+                    
+                    with open(save_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
+                    progress_bar.progress(25)
+                    
+                    # Debug: Komut bilgisi
+                    with st.expander("🔧 İşlem Detayları (Debug)", expanded=True):
+                        st.code(f"""
+Dosya: {save_path}
+Unique ID: {unique_id}
+Çalışma Dizini: {ROOT_DIR}
+Python: {sys.executable}
+                        """)
+
+                    result = process_daily_data(save_path, unique_id=unique_id)
+                    
+                    if result.returncode != 0:
+                        st.error("❌ Veri işleme hatası!")
+                        with st.expander("Hata Detayları", expanded=True):
+                            err = result.stderr.strip() or result.stdout.strip() or 'Çıktı yok'
+                            st.code(err)
+                        return
+                    
+                    progress_bar.progress(50)
+                    st.success("✅ Veri başarıyla işlendi!")
+                    
+                    status_text.text("📈 Adım 2/2: Analiz yapılıyor ve PDF oluşturuluyor...")
+                    progress_bar.progress(75)
+                    
+                    # Tarihi belirle (Excel'den veya bugünden)
+                    gun_tarihi = datetime.now().strftime("%Y-%m-%d")
+                    
+                    # Analiz komutunu çalıştır (unique_id ile)
+                    command = [sys.executable, "main.py", "--analiz", gun_tarihi, "--unique-id", unique_id]
+                    analiz_result = run_command(command)
+                    
+                    progress_bar.progress(100)
+                    status_text.text("")
+                    
+                    if analiz_result.returncode == 0:
+                        st.balloons()
+                        st.success("🎉 Rapor başarıyla oluşturuldu!")
+                        
+                        # Başarı durumunu session_state'e kaydet
+                        st.session_state.last_analysis = {
+                            "status": "success",
+                            "date": gun_tarihi,
+                            "unique_id": unique_id,
+                        }
+                        st.session_state.preselect_folder = f"{gun_tarihi}_{unique_id}"
+                        
+                        st.info("📂 Raporunuz aşağıda görüntüleniyor...")
+                        st.rerun()
+                    else:
+                        st.error("❌ Analiz hatası!")
+                        with st.expander("Hata Detayları", expanded=True):
+                            err = analiz_result.stderr.strip() or analiz_result.stdout.strip() or 'Çıktı yok'
+                            st.code(err)
+                
+                except Exception as e:
+                    st.error(f"❌ İşlem hatası: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
+        
+        st.markdown("---")
+        
+        # === MEVCUT RAPORLAR BÖLÜMÜ ===
+        st.markdown("### 📋 Mevcut Raporlar")
+        
+        # Son işlem durum kutucuğu
+        last = st.session_state.get("last_analysis")
+        if last:
+            if last.get("status") == "success":
+                st.success("✅ Son işlem: Nakil analizi başarıyla tamamlandı.")
+            else:
+                with st.expander("❌ Son işlem hata detayı", expanded=True):
+                    st.markdown("Analiz sırasında hata oluştu.")
+        
+        # Mevcut raporları listele
+        reports = get_existing_reports()
+        if not reports:
+            st.warning("⚠️ Henüz oluşturulmuş rapor bulunamadı.")
+            st.info("📝 Yukarıdan bir Excel dosyası yükleyip rapor oluşturabilirsiniz.")
+        else:
+            st.markdown(f"### 📋 Mevcut Raporlar ({len(reports)} adet)")
+            
+            # Rapor seçimi - basit format
+            selected_idx = st.selectbox(
+                "Görüntülenecek raporu seçin:",
+                range(len(reports)),
+                format_func=lambda x: reports[x]['display_name'],
+                index=0
+            )
+            
+            # Seçilen raporu al
+            selected = reports[selected_idx]
+            
+            st.success(f"✅ Seçilen rapor: {selected['display_name']}")
+            
+            # Rapor bilgileri
+            report_path = Path(selected['folder_path'])
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("📈 Grafik Sayısı", selected['png_count'])
+            with col2:
+                st.metric("📄 PDF Raporu", "✅ Var" if selected['has_pdf'] else "❌ Yok")
+            with col3:
+                st.metric("📊 JSON Verisi", "✅ Var" if selected['has_json'] else "❌ Yok")
+            
+            # Tab'lar ile içerik gösterimi
+            tab1, tab2, tab3 = st.tabs(["📈 Grafikler", "📄 PDF Raporu", "📊 JSON Verisi"])
+            
+            with tab1:
+                show_graphs(report_path, num_graphs=10)
+            
+            with tab2:
+                pdf_files = list(report_path.glob("*.pdf"))
+                if pdf_files:
+                    pdf_file = pdf_files[0]  # İlk PDF'i al
+                    with open(pdf_file, "rb") as f:
+                        pdf_bytes = f.read()
+                    
+                    st.download_button(
+                        label="📥 PDF Raporu İndir",
+                        data=pdf_bytes,
+                        file_name=pdf_file.name,
+                        mime="application/pdf"
+                    )
+                    
+                    # PDF önizlemesi
+                    try:
+                        show_pdf(str(pdf_file))
+                    except Exception as e:
+                        st.error(f"PDF önizleme hatası: {e}")
+                else:
+                    st.warning("⚠️ Bu rapor için PDF dosyası bulunamadı.")
+            
+            with tab3:
+                json_files = list(report_path.glob("*.json"))
+                if json_files:
+                    json_file = json_files[0]  # İlk JSON'ı al
+                    with st.expander(f"JSON Verisi: {json_file.name}"):
+                        try:
+                            with open(json_file, encoding="utf-8") as f:
+                                data = json.load(f)
+                            st.json(data)
+                        except Exception as e:
+                            st.error(f"❌ JSON okuma hatası: {e}")
+                else:
+                    st.warning("⚠️ JSON verisi bulunamadı.")
     else:  # Ana sayfa varsayılan
         # Ana sayfa içeriği
         st.markdown("<h1 class='main-header'>Nakil Z Raporu Analiz Sistemi</h1>", unsafe_allow_html=True)

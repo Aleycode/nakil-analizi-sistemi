@@ -105,6 +105,14 @@
     {
       "desen": "*iptal-eden-dagilimi_İl Dışı*.png",
       "baslik": "İptal Eden Kurumlar - İl Dışı Nakiller"
+    },
+    {
+      "desen": "klinik-sure-karsilastirma_*.png",
+      "baslik": "Klinik Bazında Süre Karşılaştırması"
+    },
+    {
+      "desen": "yer-bulma-sure-histogram_*.png",
+      "baslik": "Yer Bulma Süresi Dağılımı"
     }
   ]
 }

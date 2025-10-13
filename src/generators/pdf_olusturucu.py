@@ -211,6 +211,12 @@ class PDFOlusturucu:
                         grafik_yollari.append(str(item[0]))
                     else:
                         grafik_yollari.append(str(item))
+                # Özet bilgi: kaç grafik eklenecek
+                try:
+                    story.append(Paragraph(f"Toplam {len(grafik_yollari)} grafik eklendi.", self.metin_stili))
+                    story.append(Spacer(1, 0.1 * inch))
+                except Exception:
+                    pass
                 story.extend(self._grafikleri_grid_olarak_ekle(grafik_yollari, gun_tarihi))
 
             doc.build(story)
@@ -286,11 +292,17 @@ class PDFOlusturucu:
         return elements
 
     def _grafikleri_grid_olarak_ekle(self, grafik_dosyalari: List[str], gun_tarihi: str) -> List:
-        """Grafikleri 2x2'lik bir grid düzeninde PDF'e ekler ve başlık ekler."""
+        """Grafikleri 2x2'lik bir grid düzeninde PDF'e ekler ve başlık ekler.
+
+        A4 dikey içerik alanı (~7.27 inç) dikkate alınarak sütun genişlikleri 3.0 inç,
+        resim genişliği ise 2.8 inç olarak belirlenmiştir.
+        """
         from reportlab.platypus import Table, TableStyle
         from reportlab.lib import colors
 
         story = []
+        
+        logger.info(f"Grid için toplam {len(grafik_dosyalari)} grafik dosyası var")
         
         for i in range(0, len(grafik_dosyalari), 4):
             grafik_grubu = grafik_dosyalari[i:i+4]
@@ -298,7 +310,7 @@ class PDFOlusturucu:
             if i > 0:
                 story.append(PageBreak())
             
-            story.append(Paragraph(f"Günlük Analiz Grafikleri - {gun_tarihi}", self.alt_baslik_stili))
+            story.append(Paragraph(f"Günlük Analiz Grafikleri - {gun_tarihi} (Sayfa {i//4 + 1})", self.alt_baslik_stili))
             story.append(Spacer(1, 0.2 * inch))
 
             data = []
@@ -319,15 +331,17 @@ class PDFOlusturucu:
                         baslik = Paragraph(baslik_str, baslik_style)
                         
                         if not Path(grafik_path).exists():
+                            logger.warning(f"Grafik bulunamadı: {Path(grafik_path)}")
                             img = Paragraph(f"Grafik bulunamadı:<br/>{Path(grafik_path).name}", self.metin_stili)
                         else:
                             try:
-                                img = Image(grafik_path, width=3.5*inch, height=2.2*inch, kind='proportional')
+                                logger.info(f"Grafik yükleniyor: {Path(grafik_path).name}")
+                                img = Image(grafik_path, width=2.8*inch, height=1.8*inch, kind='proportional')
                             except Exception as e:
                                 logger.warning(f"Grafik yüklenemedi: {grafik_path} - {e}")
                                 img = Paragraph(f"Grafik yüklenemedi:<br/>{Path(grafik_path).name}", self.metin_stili)
                         
-                        item_table = Table([[img], [baslik]], rowHeights=[2.3*inch, 0.4*inch])
+                        item_table = Table([[img], [baslik]], rowHeights=[2.0*inch, 0.4*inch])
                         item_table.setStyle(TableStyle([
                             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -338,7 +352,7 @@ class PDFOlusturucu:
                         row_items.append(Spacer(0,0))
                 data.append(row_items)
 
-            table = Table(data, colWidths=[3.8*inch, 3.8*inch])
+            table = Table(data, colWidths=[3.0*inch, 3.0*inch])
             table.setStyle(TableStyle([
                 ('VALIGN', (0,0), (-1,-1), 'TOP'),
                 ('ALIGN', (0,0), (-1,-1), 'CENTER'),
@@ -463,10 +477,19 @@ class PDFOlusturucu:
                 return ""
 
     def _grafikleri_bul_ve_sirala(self, grafik_dizini: Path) -> List[Tuple[Path, str]]:
-        """Grafik dosyalarını bulur ve config'e göre sıralar"""
+        """Grafik dosyalarını bulur ve config'e göre sıralar.
+
+        Davranış:
+        - Config desenleriyle eşleşenler öncelikli sırada yer alır.
+        - Eşleşmeyen tüm PNG'ler de her durumda sona eklenir.
+        """
         try:
             # Tüm PNG dosyalarını bul
             tum_grafikler = list(grafik_dizini.glob("*.png"))
+            
+            logger.info(f"PDF için grafik dizininde {len(tum_grafikler)} PNG dosyası bulundu: {grafik_dizini}")
+            if len(tum_grafikler) > 0:
+                logger.info(f"İlk 5 grafik: {[g.name for g in tum_grafikler[:5]]}")
 
             if not tum_grafikler:
                 logger.warning(
@@ -486,6 +509,10 @@ class PDFOlusturucu:
                 eslesen_grafikler = [
                     g for g in tum_grafikler if fnmatch.fnmatch(g.name, pattern)
                 ]
+                
+                # Eşleşen grafik sayısını göster
+                if eslesen_grafikler:
+                    logger.info(f"Pattern '{pattern}' için {len(eslesen_grafikler)} grafik eşleşti")
 
                 for grafik in eslesen_grafikler:
                     sirali_grafikler.append((grafik, baslik if baslik else grafik.stem))
@@ -493,16 +520,10 @@ class PDFOlusturucu:
                     if grafik in tum_grafikler:
                         tum_grafikler.remove(grafik)
 
-            # Kalan grafikleri ekle (config'de belirtilmemiş olanlar) - SADECE CONFIG VARSA SKIPLA
-            if (
-                grafik_sirasi
-            ):  # Config'de grafik sırası varsa, sadece config'dekileri kullan
-                logger.info(
-                    f"Config'de {len(grafik_sirasi)} desen var, {len(sirali_grafikler)} grafik eşleşti"
-                )
-            else:
-                # Config yoksa tüm grafikleri ekle
-                for grafik in tum_grafikler:
+            # Kalan grafikleri daima sona ekle (config olsa da)
+            if tum_grafikler:
+                logger.info(f"Hiçbir desene eşleşmeyen {len(tum_grafikler)} grafik kaldı, bunlar da ekleniyor")
+                for grafik in sorted(tum_grafikler, key=lambda p: p.name):
                     sirali_grafikler.append((grafik, grafik.stem))
 
             logger.info(f"{len(sirali_grafikler)} grafik dosyası bulundu ve sıralandı")
