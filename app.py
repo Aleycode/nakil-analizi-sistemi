@@ -1413,14 +1413,7 @@ def analiz_sayfasi():
                 status_text.text("📊 Adım 1/2: Excel verisi işleniyor...")
                 progress_bar.progress(25)
                 
-                # Debug: Komut bilgisi
-                with st.expander("🔧 İşlem Detayları (Debug)", expanded=True):
-                    st.code(f"""
-                    Dosya: {save_path}
-Unique ID: {unique_id}
-Çalışma Dizini: {ROOT_DIR}
-Python: {sys.executable}
-                    """)
+
                 
                 try:
                     with st.spinner("⏳ Excel verisi işleniyor... (bu 1-2 dakika sürebilir)"):
@@ -1474,39 +1467,7 @@ Python: {sys.executable}
                                 self.stdout = "Analiz tamamlandı" if success else ""
                                 self.stderr = "" if success else "Analiz başarısız"
                         
-                        # DEBUG: rapor_sonuc içeriğini göster - GÜVENLİ YÖNTEM
-                        with st.expander("🔍 DEBUG: rapor_sonuc içeriği", expanded=True):
-                            st.write("### 📊 Analiz Sonucu Detayları")
-                            st.write("**Tip:**", str(type(rapor_sonuc)))
-                            st.write("**Bool değeri:**", bool(rapor_sonuc))
-                            
-                            if rapor_sonuc and isinstance(rapor_sonuc, dict):
-                                st.write("**📋 Mevcut Keys:**")
-                                st.code(", ".join(rapor_sonuc.keys()))
-                                
-                                st.write("**🔑 Durum Key:**", rapor_sonuc.get("durum", "YOK!"))
-                                st.write("**💬 Mesaj Key:**", rapor_sonuc.get("mesaj", "YOK!"))
-                                
-                                st.write("---")
-                                st.write("**📦 ÖNEMLİ ALANLAR:**")
-                                
-                                # Önemli alanları tek tek göster
-                                for key in ["durum", "mesaj", "toplam_vaka_sayisi", "rapor_dizini", "pdf_dosyasi", "grafik_dizini"]:
-                                    if key in rapor_sonuc:
-                                        deger = rapor_sonuc[key]
-                                        st.write(f"**{key}:**", str(deger)[:200])  # İlk 200 karakter
-                                
-                                st.write("---")
-                                st.write(f"**📝 Toplam {len(rapor_sonuc)} key bulundu**")
-                                
-                            else:
-                                st.error("❌ rapor_sonuc None veya Dict değil!")
-                                st.code(str(rapor_sonuc))
-                        
-                        # PAUSE: Kullanıcı DEBUG bilgisini okusun diye 30 saniye bekle
-                        st.info("ℹ️ DEBUG bilgisini incelemek için 30 saniye bekleniyor... (Bilgileri kopyalayın!)")
-                        import time
-                        time.sleep(30)
+
                         
                         # Sonuç kontrolü ve detaylı hata mesajı
                         if rapor_sonuc and rapor_sonuc.get("durum") == "basarili":
