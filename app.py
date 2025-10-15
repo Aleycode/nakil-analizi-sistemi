@@ -75,7 +75,7 @@ def configure_page():
     if len(st.session_state.processed_files) > 5:
         st.session_state.processed_files = st.session_state.processed_files[-5:]
     
-    # Streamlit stil düzenlemeleri - Safari ve diğer tarayıcılar için optimize
+    # Streamlit stil düzenlemeleri
     hide_streamlit_style = """
     <style>
     #MainMenu {visibility: hidden;}
@@ -84,60 +84,31 @@ def configure_page():
     .stDecoration {display:none;}
     header {visibility: hidden;}
     .stApp > header {display: none;}
+    .css-1rs6os {display: none;}
+    .css-17ziqus {display: none;}
     
-    /* Safari ve diğer tarayıcılar için uyumlu sidebar düzeltmesi */
-    [data-testid="stSidebar"] {
-        width: 22rem !important;
-        min-width: 22rem !important;
-        max-width: 22rem !important;
-        transform: none !important;
-        opacity: 1 !important;
-        transition: none !important;
-        position: relative !important;
-        z-index: 100 !important;
-        overflow-y: auto !important;
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100vh !important;
-        
-        /* Safari'ye özel düzeltmeler */
-        -webkit-transform: none !important;
-        -webkit-transition: none !important;
-        visibility: visible !important;
-    }
-    
-    /* Sidebar içerik ayarları - Safari dahil */
-    [data-testid="stSidebarContent"] {
-        width: 22rem !important;
-        min-width: 22rem !important;
-        max-width: 22rem !important;
-        padding-left: 1.5rem !important;
-        padding-right: 1.5rem !important;
-        
-        /* Safari için ek düzeltmeler */
-        -webkit-box-sizing: border-box !important;
-        box-sizing: border-box !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-    
-    /* Katlanmış sidebar durumunu engelle - Safari dahil */
-    [data-testid="stSidebar"][aria-expanded="false"] {
-        visibility: visible !important;
-        transform: none !important;
-        -webkit-transform: none !important;
-        margin-left: 0 !important;
-        width: 22rem !important;
-        min-width: 22rem !important;
-        max-width: 22rem !important;
-        height: 100vh !important;
-    }
-    
-    /* Safari için stSidebarUserContent düzeltmesi */
-    div[data-testid="stSidebarUserContent"] {
-        width: 100% !important; 
+    /* Sidebar'ı zorunlu görünür yap - tüm sınıflar */
+    .css-1d391kg, .css-1lcbmhc, .css-17lntkn, .css-1y4p8pa, .sidebar .sidebar-content {
+        width: 320px !important;
+        min-width: 320px !important;
+        max-width: 320px !important;
         display: block !important;
-        overflow-x: hidden !important;
+        visibility: visible !important;
+    }
+    
+    /* Streamlit yeni sürüm sidebar sınıfları */
+    [data-testid="stSidebar"] {
+        width: 320px !important;
+        min-width: 320px !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+    
+    [data-testid="stSidebar"] > div {
+        width: 320px !important;
+        min-width: 320px !important;
+        display: block !important;
+        visibility: visible !important;
     }
     
     /* Sidebar toggle butonunu vurgula */
@@ -151,245 +122,26 @@ def configure_page():
         box-shadow: 0 0 10px rgba(255, 75, 75, 0.5) !important;
     }
     
-    /* Ana içerik alanını ayarla - Safari ve diğer tarayıcılar için */
-    .main .block-container, 
-    [data-testid="stAppViewContainer"] > section > div,
-    .main section.main div[data-testid="stVerticalBlock"] {
-        padding-left: 1.5rem !important;
-        max-width: calc(100% - 24rem) !important;
-        margin-left: 22rem !important; /* Safari için önemli */
+    /* Ana içerik alanını ayarla */
+    .main .block-container {
+        margin-left: 340px !important;
+        max-width: calc(100% - 360px) !important;
     }
     
-    /* Safari için özel içerik düzeni */
-    @supports (-webkit-hyphens:none) {
-        .main .block-container, 
-        [data-testid="stAppViewContainer"] > section > div {
-            margin-left: 22rem !important;
-        }
-    }
-    
-    /* Mobile responsive - Safari ve diğer tarayıcılar */
+    /* Mobile responsive */
     @media (max-width: 768px) {
-        [data-testid="stSidebar"] {
-            width: 18rem !important;
-            min-width: 18rem !important;
-            max-width: 18rem !important;
+        .css-1d391kg, .css-1lcbmhc, [data-testid="stSidebar"] {
+            width: 280px !important;
+            min-width: 280px !important;
         }
-        
-        [data-testid="stSidebarContent"] {
-            width: 18rem !important;
-            min-width: 18rem !important;
-            max-width: 18rem !important;
-        }
-        
-        .main .block-container, 
-        [data-testid="stAppViewContainer"] > section > div,
-        .main section.main div[data-testid="stVerticalBlock"] {
-            padding-left: 1rem !important;
-            max-width: calc(100% - 19rem) !important;
-            margin-left: 18rem !important;
-        }
-    }
-    
-    /* Safari ve diğer tarayıcılarda Streamlit düzeltmeleri */
-    [data-testid="collapsedControl"] {
-        display: none !important;
-        visibility: hidden !important;
-    }
-    
-    /* Safari için özel seçiciler */
-    button[kind="secondary"][data-testid="collapsedControl"],
-    [data-testid="stSidebarNav"] button[aria-label="Collapse"] {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-    }
-    
-    /* Streamlit menüleri gizle */
-    .stDeployButton, [data-testid="stToolbar"] {
-        display: none !important;
-    }
-    
-    /* Safari'de sidebar butonlarının arka planını düzeltme */
-    @supports (-webkit-hyphens:none) {
-        [data-testid="stSidebar"] button {
-            background-color: rgba(255, 255, 255, 0.1) !important;
-        }
-    }
-    
-    /* Safari'de sayfa yuvarlaması ve kenar boşluğu sorunlarını düzeltme */
-    @supports (-webkit-hyphens:none) {
-        html, body {
-            overflow: auto !important;
-            margin: 0 !important;
-            padding: 0 !important;
+        .main .block-container {
+            margin-left: 300px !important;
+            max-width: calc(100% - 320px) !important;
         }
     }
     </style>
     """
-    # JavaScript ile sidebar'ı açık tutma - Safari için optimize edildi
-    js_code = """
-    <script>
-    function detectSafari() {
-        return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    }
-    
-    function fixSidebar() {
-        try {
-            // Ana çerçeveye erişim - Safari ve Chrome'a uyumlu
-            const frames = [window, window.parent, window.top];
-            let sidebar = null;
-            let collapseControl = null;
-            let mainDocument = null;
-            
-            // Tüm olası çerçevelerde sidebar'ı ara
-            for (const frame of frames) {
-                try {
-                    if (frame && frame.document) {
-                        const doc = frame.document;
-                        const sb = doc.querySelector('[data-testid="stSidebar"]');
-                        if (sb) {
-                            sidebar = sb;
-                            mainDocument = doc;
-                            collapseControl = doc.querySelector('[data-testid="collapsedControl"]');
-                            break;
-                        }
-                    }
-                } catch (e) {
-                    // Çerçeveye erişim hatası, devam et
-                }
-            }
-            
-            if (!sidebar || !mainDocument) return;
-            
-            // Safari'de özel işlem yapılması gerekebilir
-            const isSafari = detectSafari();
-            
-            // Sidebar'ı yapılandır
-            sidebar.setAttribute('aria-expanded', 'true');
-            
-            const styles = {
-                visibility: 'visible',
-                width: '22rem',
-                minWidth: '22rem',
-                maxWidth: '22rem',
-                transform: 'none',
-                opacity: '1',
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100vh',
-                position: 'relative'
-            };
-            
-            // Safari'ye özel ek stiller
-            if (isSafari) {
-                styles['-webkit-transform'] = 'none';
-                styles['-webkit-transition'] = 'none';
-                styles['overflowY'] = 'auto';
-                styles['zIndex'] = '100';
-            }
-            
-            // Stilleri uygula
-            Object.keys(styles).forEach(key => {
-                sidebar.style[key] = styles[key];
-            });
-            
-            // İçerik genişliğini ayarla
-            const content = mainDocument.querySelector('[data-testid="stSidebarContent"]');
-            if (content) {
-                content.style.width = '22rem';
-                content.style.minWidth = '22rem';
-                content.style.maxWidth = '22rem';
-                if (isSafari) {
-                    content.style.display = 'flex';
-                    content.style.flexDirection = 'column';
-                }
-            }
-            
-            // Kullanıcı içeriğini düzelt
-            const userContent = mainDocument.querySelector('[data-testid="stSidebarUserContent"]');
-            if (userContent) {
-                userContent.style.width = '100%';
-                userContent.style.display = 'block';
-                userContent.style.overflowX = 'hidden';
-            }
-            
-            // Collapse kontrolünü gizle
-            if (collapseControl) {
-                collapseControl.style.display = 'none';
-            }
-            
-            console.log('Sidebar düzeltmesi uygulandı' + (isSafari ? ' (Safari)' : ''));
-        } catch (error) {
-            console.error('Sidebar düzeltmesi hatası:', error);
-        }
-    }
-    
-    // Safari için daha sık kontrol ve sabitleme
-    const isSafari = detectSafari();
-    
-    // İlk yükleme
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            fixSidebar();
-            // Safari için daha fazla deneme
-            if (isSafari) {
-                setTimeout(fixSidebar, 500);
-                setTimeout(fixSidebar, 1000);
-                setTimeout(fixSidebar, 2000);
-            } else {
-                setTimeout(fixSidebar, 1000);
-            }
-        });
-    } else {
-        fixSidebar();
-        setTimeout(fixSidebar, 500);
-    }
-    
-    // Sayfa tamamen yüklendiğinde
-    window.addEventListener('load', function() {
-        fixSidebar();
-        if (isSafari) setTimeout(fixSidebar, 500);
-    });
-    
-    // Olası sidebar değişikliklerini izle
-    const setupObserver = () => {
-        try {
-            const frames = [window, window.parent, window.top];
-            for (const frame of frames) {
-                try {
-                    if (frame && frame.document) {
-                        const sidebar = frame.document.querySelector('[data-testid="stSidebar"]');
-                        if (sidebar) {
-                            new MutationObserver(fixSidebar).observe(sidebar, { 
-                                attributes: true, 
-                                childList: true, 
-                                subtree: true 
-                            });
-                            break;
-                        }
-                    }
-                } catch (e) {}
-            }
-        } catch (error) {
-            console.error('Observer hatası:', error);
-        }
-    };
-    
-    // Observer'ı ayarla
-    setTimeout(setupObserver, 1500);
-    
-    // Safari'de pencere boyutu değiştiğinde tekrar düzelt
-    if (isSafari) {
-        window.addEventListener('resize', function() {
-            setTimeout(fixSidebar, 200);
-        });
-    }
-    </script>
-    """
-    
-    st.markdown(hide_streamlit_style + js_code, unsafe_allow_html=True)
+    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
     
     # Gece modu kontrolü - varsayılan olarak açık
     dark_mode = True
@@ -1945,15 +1697,66 @@ def main():
                 st.session_state.page = key
         
         st.markdown("---")
+        # Gelişmiş bölüm: Cache temizleme ve hızlı yollar
+        with st.expander("⚙️ Gelişmiş Ayarlar", expanded=False):
+            st.markdown("### 🧹 Cache Yönetimi")
+            
+            # Cache temizleme butonu - görsel feedback ile
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                if st.button("🗑️ Cache'i Temizle ve Yenile", use_container_width=True, type="primary"):
+                    # Session state'e mesaj yaz
+                    st.session_state.cache_cleared = True
+                    try:
+                        st.cache_data.clear()
+                        st.cache_resource.clear()
+                    finally:
+                        st.rerun()
+            with col2:
+                # Temizlik durumu göster
+                if st.session_state.get("cache_cleared", False):
+                    st.success("✅")
+                    # Mesajı gösterdikten sonra temizle
+                    if st.button("OK", use_container_width=True):
+                        st.session_state.cache_cleared = False
+                        st.rerun()
+            
+            # Cache temizlendi mesajı
+            if st.session_state.get("cache_cleared", False):
+                st.success("✅ Cache başarıyla temizlendi!")
+                st.info("📄 Sayfa otomatik yenilendi. Artık güncel verileri görüyorsunuz.")
+            
+            st.markdown("---")
+            st.markdown("### ⌨️ Hızlı Klavye Kısayolları")
+            st.markdown("""
+            **Tarayıcı Cache'i Temizleme:**
+            - 🪟 **Windows/Linux:** `Ctrl + Shift + R` veya `Ctrl + F5`
+            - 🍎 **Mac:** `Cmd + Shift + R` veya `Cmd + Option + R`
+            - 🔄 **Tam yenileme:** `Ctrl/Cmd + Shift + Delete` → Önbelleği temizle
+            
+            **Streamlit Cache'i Temizleme:**
+            - 🔝 Sağ üst köşe **⋮** menü → **Clear cache**
+            - 🔄 **Bu buton** → Uygulama içi cache temizleme
+            - 🚀 **Cloud:** Streamlit Cloud → **Reboot app**
+            
+            **Sorun Giderme:**
+            - 🌐 **Gizli sekme:** `Ctrl/Cmd + Shift + N` (cache'siz başlat)
+            - 🔌 **Yavaş yükleme:** Internet bağlantınızı kontrol edin
+            - 💾 **Veri kaybolması:** Raporlar `data/reports/` klasöründe güvende
+            """)
+            
+            st.markdown("---")
+            st.markdown("### 🔧 Diğer Ayarlar")
+            
+            # Gelişmiş mod toggle
+            dev_mode = st.checkbox("🛠️ Geliştirici Modu", value=False, help="Debug bilgilerini göster")
+            if dev_mode:
+                st.code(f"""
+Session State Keys: {list(st.session_state.keys())}
+Current Page: {st.session_state.get('page', 'N/A')}
+Cache Cleared: {st.session_state.get('cache_cleared', False)}
+                """)
         
-        # Sadece cache temizleme butonu - sadeleştirilmiş tasarım
-        if st.button("🔄 Uygulamayı Yenile", use_container_width=True, help="Uygulama önbelleğini temizler ve sayfayı yeniler"):
-            try:
-                st.cache_data.clear()
-                st.cache_resource.clear()
-            finally:
-                st.rerun()
-                
         st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
     
     # Ana içerik - sayfa yönlendirmeleri
