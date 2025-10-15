@@ -1697,65 +1697,6 @@ def main():
                 st.session_state.page = key
         
         st.markdown("---")
-        # Gelişmiş bölüm: Cache temizleme ve hızlı yollar
-        with st.expander("⚙️ Gelişmiş Ayarlar", expanded=False):
-            st.markdown("### 🧹 Cache Yönetimi")
-            
-            # Cache temizleme butonu - görsel feedback ile
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                if st.button("🗑️ Cache'i Temizle ve Yenile", use_container_width=True, type="primary"):
-                    # Session state'e mesaj yaz
-                    st.session_state.cache_cleared = True
-                    try:
-                        st.cache_data.clear()
-                        st.cache_resource.clear()
-                    finally:
-                        st.rerun()
-            with col2:
-                # Temizlik durumu göster
-                if st.session_state.get("cache_cleared", False):
-                    st.success("✅")
-                    # Mesajı gösterdikten sonra temizle
-                    if st.button("OK", use_container_width=True):
-                        st.session_state.cache_cleared = False
-                        st.rerun()
-            
-            # Cache temizlendi mesajı
-            if st.session_state.get("cache_cleared", False):
-                st.success("✅ Cache başarıyla temizlendi!")
-                st.info("📄 Sayfa otomatik yenilendi. Artık güncel verileri görüyorsunuz.")
-            
-            st.markdown("---")
-            st.markdown("### ⌨️ Hızlı Klavye Kısayolları")
-            st.markdown("""
-            **Tarayıcı Cache'i Temizleme:**
-            - 🪟 **Windows/Linux:** `Ctrl + Shift + R` veya `Ctrl + F5`
-            - 🍎 **Mac:** `Cmd + Shift + R` veya `Cmd + Option + R`
-            - 🔄 **Tam yenileme:** `Ctrl/Cmd + Shift + Delete` → Önbelleği temizle
-            
-            **Streamlit Cache'i Temizleme:**
-            - 🔝 Sağ üst köşe **⋮** menü → **Clear cache**
-            - 🔄 **Bu buton** → Uygulama içi cache temizleme
-            - 🚀 **Cloud:** Streamlit Cloud → **Reboot app**
-            
-            **Sorun Giderme:**
-            - 🌐 **Gizli sekme:** `Ctrl/Cmd + Shift + N` (cache'siz başlat)
-            - 🔌 **Yavaş yükleme:** Internet bağlantınızı kontrol edin
-            - 💾 **Veri kaybolması:** Raporlar `data/reports/` klasöründe güvende
-            """)
-            
-            st.markdown("---")
-            st.markdown("### 🔧 Diğer Ayarlar")
-            
-            # Gelişmiş mod toggle
-            dev_mode = st.checkbox("🛠️ Geliştirici Modu", value=False, help="Debug bilgilerini göster")
-            if dev_mode:
-                st.code(f"""
-Session State Keys: {list(st.session_state.keys())}
-Current Page: {st.session_state.get('page', 'N/A')}
-Cache Cleared: {st.session_state.get('cache_cleared', False)}
-                """)
         
         st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
     
