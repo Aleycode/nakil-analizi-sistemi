@@ -63,7 +63,7 @@ def configure_page():
         menu_items={
             'Get Help': 'https://github.com/Aleycode/nakil-analizi-sistemi',
             'Report a bug': 'https://github.com/Aleycode/nakil-analizi-sistemi/issues',
-            'About': "Nakil Z Raporu Analiz Sistemi v1.0"
+            'About': "Nakil Analizi ve Raporlama Sistemi v1.0"
         }
     )
     
@@ -1335,7 +1335,7 @@ def show_statistics(date_or_folder):
 
 def analiz_sayfasi():
     """Nakil Analizi Sayfası - Ana sayfa + Analiz birleşik"""
-    st.markdown("<h1 class='main-header'>Nakil Z Raporu Analiz Sistemi</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='main-header'>Nakil Analizi ve Raporlama Sistemi</h1>", unsafe_allow_html=True)
     
     # Cache temizlendi bildirimi (tek sefer göster)
     if st.session_state.get("cache_cleared", False):
@@ -1698,7 +1698,7 @@ def main():
         
         st.markdown("---")
         
-        st.caption("© 2025 Nakil Z Raporu Analiz Sistemi")
+        st.caption("© 2025 Nakil Analizi ve Raporlama Sistemi")
     
     # Ana içerik - sayfa yönlendirmeleri
     current_page = st.session_state.get("page", "analiz")
